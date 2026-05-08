@@ -156,20 +156,50 @@ cmd_firmware() {
 
   ensure_ei_library
 
+  # Stable build output directory so we can find the binary for upload
+  local build_path="/tmp/arduino-build-unoq"
+  mkdir -p "$build_path"
+
   step "Compiling firmware"
   info "Sketch : $SKETCH_DIR"
   info "FQBN   : $ARDUINO_FQBN"
   arduino-cli compile \
     --fqbn "$ARDUINO_FQBN" \
+    --build-path "$build_path" \
     "$SCRIPT_DIR/$SKETCH_DIR"
   success "Compilation OK"
 
   step "Uploading firmware"
   info "Port: $port"
-  arduino-cli upload \
-    --fqbn "$ARDUINO_FQBN" \
-    --port "$port" \
-    "$SCRIPT_DIR/$SKETCH_DIR"
+  # arduino-cli 1.4.x does not substitute {upload.port.properties.serialNumber}
+  # in the remoteocd command, so we call remoteocd directly.
+  local serial_no
+  serial_no=$(arduino-cli board list --format json 2>/dev/null \
+    | python3 -c "
+import json,sys
+for p in json.load(sys.stdin).get('detected_ports',[]):
+    if p['port']['address'] == '$port':
+        print(p['port'].get('properties',{}).get('serialNumber',''))
+        break
+" 2>/dev/null || true)
+
+  if [ -z "$serial_no" ]; then
+    die "Could not read USB serial number for $port. Is the board plugged in?"
+  fi
+
+  local remoteocd
+  remoteocd=$(ls ~/Library/Arduino15/packages/arduino/tools/remoteocd/*/remoteocd 2>/dev/null | head -1)
+  local adb_path
+  adb_path=$(dirname "$(ls ~/Library/Arduino15/packages/arduino/tools/adb/*/adb 2>/dev/null | head -1)")
+  local variant_dir="$HOME/Library/Arduino15/packages/arduino/hardware/zephyr/0.55.0/variants/arduino_uno_q_stm32u585xx"
+  local firmware="$build_path/sketch.ino.elf-zsk.bin"
+
+  info "Serial: $serial_no"
+  "$remoteocd" upload \
+    --adb-path "$adb_path/adb" \
+    -s "$serial_no" \
+    -f "$variant_dir/flash_sketch.cfg" \
+    "$firmware"
   success "Upload complete → MCU will reboot"
 }
 
@@ -190,8 +220,15 @@ cmd_app() {
 
   step "Packaging app"
   local tmp_zip="/tmp/security-hub-$$.zip"
-  # Zip the app/ contents (not the directory itself — app-cli needs the files at zip root)
-  (cd "$app_dir" && zip -r "$tmp_zip" . --exclude '*.DS_Store' --exclude '__pycache__/*' --exclude '*.pyc' --exclude '.cache/*')
+  # Zip the app/ contents (not the directory itself — app-cli needs the files at zip root).
+  # Exclude sketch/ — MCU firmware is flashed directly via 'deploy.sh firmware'; the
+  # device does not need to re-compile it and the EI inferencing library is not on the device.
+  (cd "$app_dir" && zip -r "$tmp_zip" . \
+    --exclude '*.DS_Store' \
+    --exclude '__pycache__/*' \
+    --exclude '*.pyc' \
+    --exclude '.cache/*' \
+    --exclude 'sketch/*')
   info "Packaged: $tmp_zip ($(du -sh "$tmp_zip" | cut -f1))"
 
   step "Uploading app to device"

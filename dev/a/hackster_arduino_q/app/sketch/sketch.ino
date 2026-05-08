@@ -3,21 +3,9 @@
 // → grayscale LED matrix icons + Bridge events to Linux dashboard.
 // Pins: D7=L/R, D8=SD(in), D9=SCK, D10=WS
 //
-// Requires the Edge Impulse Arduino library:
-//   Sketch → Include Library → Add .ZIP Library → security-hub-acoustic_inferencing.zip
-//   (export from Edge Impulse Dashboard → Deployment → Arduino library)
+// Edge Impulse library is auto-installed by deploy.sh before compilation.
 
-#if defined(__has_include)
-#  if __has_include(<both-project-1_inferencing.h>)
-#    include <both-project-1_inferencing.h>
-#  elif __has_include(<security-hub-acoustic_inferencing.h>)
-#    include <security-hub-acoustic_inferencing.h>
-#  else
-#    error "Install the Edge Impulse ZIP library first: Sketch > Include Library > Add .ZIP Library, then choose security-hub-acoustic_inferencing.zip from 03_ai_model/."
-#  endif
-#else
-#  include <both-project-1_inferencing.h>
-#endif
+#include <both-project-1_inferencing.h>
 
 #include "Arduino_RouterBridge.h"
 #include "Arduino_LED_Matrix.h"
