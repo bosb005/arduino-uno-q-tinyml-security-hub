@@ -1,0 +1,10 @@
+name: security-hub
+icon: 🔒
+description: >
+  Privacy-first acoustic event detection at the edge using TinyML.
+  Detects presence, anomaly, and manual trigger events via INMP441 I2S microphone.
+  All inference runs on the MCU — no audio streaming, fully offline.
+ports:
+  - 7000
+bricks:
+  - arduino:web_ui

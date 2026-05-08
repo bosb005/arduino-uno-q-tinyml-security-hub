@@ -5,6 +5,11 @@
 //
 // Edge Impulse library is auto-installed by deploy.sh before compilation.
 
+// Suppress EI logging: on Zephyr, ei_printf() writes to Serial which IS the
+// Bridge's MsgPack transport — any stray byte corrupts the RPC framing.
+void ei_printf(const char* /*format*/, ...) {}
+void ei_printf_float(float /*f*/) {}
+
 #include <both-project-1_inferencing.h>
 
 #include "Arduino_RouterBridge.h"
@@ -112,16 +117,19 @@ static void run_inference() {
     _ready = true;
   }
 
+  bool heartbeat_due = (now - _last_bridge >= BRIDGE_INTERVAL_MS);
+
+#ifndef SKIP_INFERENCE
   // audio_ready() is blocking: captures AUDIO_FRAME_SAMPLES then returns true.
   if (!audio_ready()) return;
 
   g_audio_frame = audio_get_frame();
   if (g_audio_frame == nullptr) {
     audio_clear_ready();
+    if (heartbeat_due) { _last_bridge = now; draw_with_status(label_to_icon(_label)); }
     return;
   }
 
-  bool heartbeat_due = (now - _last_bridge >= BRIDGE_INTERVAL_MS);
 
   signal_t signal;
   signal.total_length = EI_CLASSIFIER_RAW_SAMPLE_COUNT;  // must equal 16000
@@ -157,6 +165,14 @@ static void run_inference() {
   }
 
   bool changed = (strcmp(best_label, _label) != 0);
+#else
+  // SKIP_INFERENCE: test LEDs + Bridge without running the EI model.
+  audio_clear_ready();
+  g_audio_frame = nullptr;
+  const char* best_label = "idle";
+  float       best_value = 0.0f;
+  bool        changed    = false;
+#endif
 
   if (changed || heartbeat_due) {
     _label       = best_label;
@@ -170,9 +186,11 @@ void setup() {
   matrix.begin();
   matrix.setGrayscaleBits(3);
   matrix.clear();
+  // Draw BEFORE Bridge.begin() — if this icon shows, the LLEXT loaded and
+  // LED matrix works.  If it doesn't, the LLEXT itself is broken.
+  draw_with_status(ICON_IDLE);
   Bridge.begin();
   audio_init();
-  draw_with_status(ICON_IDLE);
 }
 
 void loop() {

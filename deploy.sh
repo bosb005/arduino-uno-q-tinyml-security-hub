@@ -156,6 +156,14 @@ cmd_firmware() {
 
   ensure_ei_library
 
+  # Restart the router BEFORE flashing so the MCU boots into a stable router.
+  # If the router restarts after the MCU, Bridge.begin() catches a dead socket
+  # and the handshake never completes.
+  step "Restarting arduino-router before flash"
+  run_ssh "echo 'arduino' | sudo -S systemctl restart arduino-router 2>/dev/null; sleep 3; \
+    systemctl is-active arduino-router" \
+    && success "Router ready" || warn "Router restart failed — continuing anyway"
+
   # Stable build output directory so we can find the binary for upload
   local build_path="/tmp/arduino-build-unoq"
   mkdir -p "$build_path"
@@ -166,6 +174,7 @@ cmd_firmware() {
   arduino-cli compile \
     --fqbn "$ARDUINO_FQBN" \
     --build-path "$build_path" \
+    --clean \
     "$SCRIPT_DIR/$SKETCH_DIR"
   success "Compilation OK"
 
@@ -194,13 +203,34 @@ for p in json.load(sys.stdin).get('detected_ports',[]):
   local variant_dir="$HOME/Library/Arduino15/packages/arduino/hardware/zephyr/0.55.0/variants/arduino_uno_q_stm32u585xx"
   local firmware="$build_path/sketch.ino.elf-zsk.bin"
 
+  # flash_sketch.cfg (0.55.0): flash ELF to 0x8100000, reset MCU, then write
+  # magic word 0xCAFFEEEE to 0x40036400 100ms after boot while MCU is running.
+  # Kernel polls that register; when it finds the magic it loads the LLEXT from
+  # 0x8100000.  We compile with wait_linux_boot=no (immediate mode) so the
+  # sketch starts right away without waiting for a GPIO-70 edge.
   info "Serial: $serial_no"
   "$remoteocd" upload \
     --adb-path "$adb_path/adb" \
     -s "$serial_no" \
     -f "$variant_dir/flash_sketch.cfg" \
     "$firmware"
-  success "Upload complete → MCU will reboot"
+  success "Upload complete"
+
+  # After flashing the MCU reboots and handshakes with the already-running router.
+  # Re-register the Python app's Bridge.provide() binding against the current router.
+  step "Reconnecting Python app to Bridge"
+  run_ssh "
+    APP_ID=\$(curl -sf 'http://localhost:${APP_CLI_PORT}/v1/apps' | \
+      python3 -c \"import json,sys; apps=json.load(sys.stdin).get('apps',[]); \
+        [print(a['id']) for a in apps if '${APP_NAME}' in a.get('name','').lower() and a.get('status')=='running']\" 2>/dev/null | head -1)
+    if [ -n \"\$APP_ID\" ]; then
+      curl -sf -X POST \"http://localhost:${APP_CLI_PORT}/v1/apps/\${APP_ID}/stop\" >/dev/null 2>&1; sleep 2
+      curl -sf -X POST \"http://localhost:${APP_CLI_PORT}/v1/apps/\${APP_ID}/start\" --max-time 60 >/dev/null 2>&1
+      echo \"App \${APP_ID} restarted\"
+    else
+      echo 'No running app found — run: ./deploy.sh app'
+    fi" \
+    && success "Python app reconnected" || warn "App reconnect failed — run: ./deploy.sh app"
 }
 
 # Deploy the Arduino App (app/ directory) via arduino-app-cli REST API.
@@ -276,16 +306,6 @@ for a in apps:
       echo "$line" | grep -qi '"code":"INTERNAL' && { warn "Start error — check: ./deploy.sh logs"; break; }
     done
   success "App started → dashboard at http://${DEVICE_IP}:7000"
-
-  # After every deploy the arduino-router handshake state resets; restart it
-  # so the MCU and the Bridge container can re-establish their connection.
-  if [ "${app_name_override:-}" = "" ]; then
-    step "Restarting arduino-router to fix Bridge handshake"
-    run_ssh "echo 'arduino' | sudo -S systemctl restart arduino-router 2>/dev/null; sleep 5; \
-      curl -sf -X POST 'http://localhost:${APP_CLI_PORT}/v1/apps/${id}/stop'  >/dev/null 2>&1; sleep 2; \
-      curl -sf -X POST 'http://localhost:${APP_CLI_PORT}/v1/apps/${id}/start' --max-time 60 >/dev/null 2>&1" \
-      && success "Bridge restarted" || warn "Bridge restart failed — try: ./deploy.sh bridge-fix"
-  fi
 }
 
 cmd_app_stop() {

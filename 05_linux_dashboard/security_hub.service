@@ -1,0 +1,14 @@
+[Unit]
+Description=Security Hub Dashboard
+After=network.target
+
+[Service]
+Environment=SERIAL_PORT=/dev/ttyS1
+Environment=SERIAL_BAUD=115200
+WorkingDirectory=/home/user/dashboard
+ExecStart=/usr/bin/python3 /home/user/dashboard/app.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

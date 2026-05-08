@@ -1,0 +1,232 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0a0f1a"/>
+      <stop offset="100%" style="stop-color:#0d1f2d"/>
+    </linearGradient>
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#00c8a0"/>
+      <stop offset="100%" style="stop-color:#00979D"/>
+    </linearGradient>
+    <linearGradient id="glowH" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%" style="stop-color:#00c8a0;stop-opacity:0"/>
+      <stop offset="50%" style="stop-color:#00c8a0;stop-opacity:0.15"/>
+      <stop offset="100%" style="stop-color:#00c8a0;stop-opacity:0"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="softglow">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="textglow">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- Subtle grid lines -->
+  <g stroke="#1a2a3a" stroke-width="1" opacity="0.5">
+    <line x1="0" y1="105" x2="1200" y2="105"/>
+    <line x1="0" y1="210" x2="1200" y2="210"/>
+    <line x1="0" y1="315" x2="1200" y2="315"/>
+    <line x1="0" y1="420" x2="1200" y2="420"/>
+    <line x1="0" y1="525" x2="1200" y2="525"/>
+    <line x1="200" y1="0" x2="200" y2="630"/>
+    <line x1="400" y1="0" x2="400" y2="630"/>
+    <line x1="600" y1="0" x2="600" y2="630"/>
+    <line x1="800" y1="0" x2="800" y2="630"/>
+    <line x1="1000" y1="0" x2="1000" y2="630"/>
+  </g>
+
+  <!-- Horizontal accent glow band -->
+  <rect x="0" y="270" width="1200" height="90" fill="url(#glowH)"/>
+
+  <!-- ── LED Matrix representation (left side) ── -->
+  <!-- 13×8 pixel grid showing the "presence" person icon + status bar -->
+  <g transform="translate(95, 165)">
+    <!-- Pixel size 28px, gap 4px → total cell 32px -->
+    <!-- Row 0: person head -->
+    <rect x="128" y="0"   width="28" height="28" rx="4" fill="#00c8a0" opacity="0.9" filter="url(#glow)"/>
+    <rect x="160" y="0"   width="28" height="28" rx="4" fill="#00c8a0" opacity="0.9" filter="url(#glow)"/>
+    <!-- Row 1: head -->
+    <rect x="128" y="32"  width="28" height="28" rx="4" fill="#00c8a0" opacity="0.9" filter="url(#glow)"/>
+    <rect x="160" y="32"  width="28" height="28" rx="4" fill="#00c8a0" opacity="0.9" filter="url(#glow)"/>
+    <!-- Row 2: neck gap — empty -->
+    <!-- Row 3: shoulders -->
+    <rect x="96"  y="96"  width="28" height="28" rx="4" fill="#00c8a0" opacity="0.9" filter="url(#glow)"/>
+    <rect x="128" y="96"  width="28" height="28" rx="4" fill="#00c8a0" opacity="0.9" filter="url(#glow)"/>
+    <rect x="160" y="96"  width="28" height="28" rx="4" fill="#00c8a0" opacity="0.9" filter="url(#glow)"/>
+    <rect x="192" y="96"  width="28" height="28" rx="4" fill="#00c8a0" opacity="0.9" filter="url(#glow)"/>
+    <!-- Row 4: torso -->
+    <rect x="128" y="128" width="28" height="28" rx="4" fill="#00c8a0" opacity="0.9" filter="url(#glow)"/>
+    <rect x="160" y="128" width="28" height="28" rx="4" fill="#00c8a0" opacity="0.9" filter="url(#glow)"/>
+    <!-- Row 5: torso -->
+    <rect x="128" y="160" width="28" height="28" rx="4" fill="#00c8a0" opacity="0.9" filter="url(#glow)"/>
+    <rect x="160" y="160" width="28" height="28" rx="4" fill="#00c8a0" opacity="0.9" filter="url(#glow)"/>
+    <!-- Row 6: legs -->
+    <rect x="96"  y="192" width="28" height="28" rx="4" fill="#00c8a0" opacity="0.7"/>
+    <rect x="192" y="192" width="28" height="28" rx="4" fill="#00c8a0" opacity="0.7"/>
+    <!-- Row 7: feet -->
+    <rect x="96"  y="224" width="28" height="28" rx="4" fill="#00c8a0" opacity="0.7"/>
+    <rect x="192" y="224" width="28" height="28" rx="4" fill="#00c8a0" opacity="0.7"/>
+
+    <!-- Separator col (col 10) — all rows dim -->
+    <rect x="320" y="0"   width="8"  height="28" rx="2" fill="#1e3a3a" opacity="0.8"/>
+    <rect x="320" y="32"  width="8"  height="28" rx="2" fill="#1e3a3a" opacity="0.8"/>
+    <rect x="320" y="64"  width="8"  height="28" rx="2" fill="#1e3a3a" opacity="0.8"/>
+    <rect x="320" y="96"  width="8"  height="28" rx="2" fill="#1e3a3a" opacity="0.8"/>
+    <rect x="320" y="128" width="8"  height="28" rx="2" fill="#1e3a3a" opacity="0.8"/>
+    <rect x="320" y="160" width="8"  height="28" rx="2" fill="#1e3a3a" opacity="0.8"/>
+    <rect x="320" y="192" width="8"  height="28" rx="2" fill="#1e3a3a" opacity="0.8"/>
+    <rect x="320" y="224" width="8"  height="28" rx="2" fill="#1e3a3a" opacity="0.8"/>
+
+    <!-- Status bar cols 11-12 (web/mic/bridge bright, heartbeat dim) -->
+    <!-- rows 0-1: web -->
+    <rect x="336" y="0"   width="28" height="28" rx="4" fill="#00c8a0" opacity="0.85" filter="url(#glow)"/>
+    <rect x="368" y="0"   width="28" height="28" rx="4" fill="#00c8a0" opacity="0.85" filter="url(#glow)"/>
+    <rect x="336" y="32"  width="28" height="28" rx="4" fill="#00c8a0" opacity="0.85" filter="url(#glow)"/>
+    <rect x="368" y="32"  width="28" height="28" rx="4" fill="#00c8a0" opacity="0.85" filter="url(#glow)"/>
+    <!-- rows 2-3: mic -->
+    <rect x="336" y="64"  width="28" height="28" rx="4" fill="#00c8a0" opacity="0.85" filter="url(#glow)"/>
+    <rect x="368" y="64"  width="28" height="28" rx="4" fill="#00c8a0" opacity="0.85" filter="url(#glow)"/>
+    <rect x="336" y="96"  width="28" height="28" rx="4" fill="#00c8a0" opacity="0.85" filter="url(#glow)"/>
+    <rect x="368" y="96"  width="28" height="28" rx="4" fill="#00c8a0" opacity="0.85" filter="url(#glow)"/>
+    <!-- rows 4-5: bridge -->
+    <rect x="336" y="128" width="28" height="28" rx="4" fill="#00c8a0" opacity="0.85" filter="url(#glow)"/>
+    <rect x="368" y="128" width="28" height="28" rx="4" fill="#00c8a0" opacity="0.85" filter="url(#glow)"/>
+    <rect x="336" y="160" width="28" height="28" rx="4" fill="#00c8a0" opacity="0.85" filter="url(#glow)"/>
+    <rect x="368" y="160" width="28" height="28" rx="4" fill="#00c8a0" opacity="0.85" filter="url(#glow)"/>
+    <!-- rows 6-7: heartbeat (dimmer) -->
+    <rect x="336" y="192" width="28" height="28" rx="4" fill="#00c8a0" opacity="0.35"/>
+    <rect x="368" y="192" width="28" height="28" rx="4" fill="#00c8a0" opacity="0.35"/>
+    <rect x="336" y="224" width="28" height="28" rx="4" fill="#00c8a0" opacity="0.55" filter="url(#glow)"/>
+    <rect x="368" y="224" width="28" height="28" rx="4" fill="#00c8a0" opacity="0.55" filter="url(#glow)"/>
+
+    <!-- Dim off-pixels to show grid -->
+    <g opacity="0.08" fill="#00c8a0">
+      <!-- row 0 off pixels -->
+      <rect x="0"  y="0"  width="28" height="28" rx="4"/>
+      <rect x="32" y="0"  width="28" height="28" rx="4"/>
+      <rect x="64" y="0"  width="28" height="28" rx="4"/>
+      <rect x="96" y="0"  width="28" height="28" rx="4"/>
+      <rect x="192" y="0" width="28" height="28" rx="4"/>
+      <rect x="224" y="0" width="28" height="28" rx="4"/>
+      <rect x="256" y="0" width="28" height="28" rx="4"/>
+      <rect x="288" y="0" width="28" height="28" rx="4"/>
+      <!-- row 2 off pixels -->
+      <rect x="0"  y="64" width="28" height="28" rx="4"/>
+      <rect x="32" y="64" width="28" height="28" rx="4"/>
+      <rect x="64" y="64" width="28" height="28" rx="4"/>
+      <rect x="96" y="64" width="28" height="28" rx="4"/>
+      <rect x="128" y="64" width="28" height="28" rx="4"/>
+      <rect x="160" y="64" width="28" height="28" rx="4"/>
+      <rect x="192" y="64" width="28" height="28" rx="4"/>
+      <rect x="224" y="64" width="28" height="28" rx="4"/>
+      <rect x="256" y="64" width="28" height="28" rx="4"/>
+      <rect x="288" y="64" width="28" height="28" rx="4"/>
+    </g>
+  </g>
+
+  <!-- ── Sound wave arcs (mic indicator) ── -->
+  <g transform="translate(600, 315)" stroke="#00c8a0" fill="none" stroke-linecap="round">
+    <path d="M-10,-40 Q0,-50 10,-40" stroke-width="3" opacity="0.4"/>
+    <path d="M-22,-55 Q0,-75 22,-55" stroke-width="3" opacity="0.55"/>
+    <path d="M-36,-72 Q0,-102 36,-72" stroke-width="3" opacity="0.7" filter="url(#glow)"/>
+    <path d="M-50,-89 Q0,-129 50,-89" stroke-width="3" opacity="0.5"/>
+    <!-- Mic capsule -->
+    <rect x="-8" y="-38" width="16" height="26" rx="8" stroke-width="2.5" opacity="0.8" filter="url(#glow)"/>
+    <line x1="0" y1="-12" x2="0" y2="10" stroke-width="2.5" opacity="0.8"/>
+    <path d="M-12,10 Q0,22 12,10" stroke-width="2.5" opacity="0.8"/>
+  </g>
+
+  <!-- ── Neural net dots (AI indicator) ── -->
+  <g fill="#00c8a0" filter="url(#glow)">
+    <!-- input layer -->
+    <circle cx="680" cy="200" r="6" opacity="0.5"/>
+    <circle cx="680" cy="240" r="6" opacity="0.5"/>
+    <circle cx="680" cy="280" r="6" opacity="0.5"/>
+    <circle cx="680" cy="320" r="6" opacity="0.5"/>
+    <circle cx="680" cy="360" r="6" opacity="0.5"/>
+    <!-- hidden layer -->
+    <circle cx="760" cy="220" r="7" opacity="0.7"/>
+    <circle cx="760" cy="270" r="7" opacity="0.7"/>
+    <circle cx="760" cy="320" r="7" opacity="0.7"/>
+    <circle cx="760" cy="370" r="7" opacity="0.7"/>
+    <!-- output layer -->
+    <circle cx="840" cy="255" r="8" opacity="0.9"/>
+    <circle cx="840" cy="315" r="8" opacity="0.9"/>
+    <circle cx="840" cy="375" r="8" opacity="0.7"/>
+  </g>
+  <!-- Connecting lines -->
+  <g stroke="#00c8a0" stroke-width="1" fill="none">
+    <line x1="686" y1="200" x2="753" y2="220" opacity="0.2"/>
+    <line x1="686" y1="200" x2="753" y2="270" opacity="0.15"/>
+    <line x1="686" y1="240" x2="753" y2="220" opacity="0.2"/>
+    <line x1="686" y1="240" x2="753" y2="270" opacity="0.2"/>
+    <line x1="686" y1="280" x2="753" y2="270" opacity="0.2"/>
+    <line x1="686" y1="280" x2="753" y2="320" opacity="0.2"/>
+    <line x1="686" y1="320" x2="753" y2="320" opacity="0.2"/>
+    <line x1="686" y1="320" x2="753" y2="370" opacity="0.15"/>
+    <line x1="686" y1="360" x2="753" y2="320" opacity="0.15"/>
+    <line x1="686" y1="360" x2="753" y2="370" opacity="0.2"/>
+    <line x1="767" y1="220" x2="832" y2="255" opacity="0.3"/>
+    <line x1="767" y1="270" x2="832" y2="255" opacity="0.3"/>
+    <line x1="767" y1="270" x2="832" y2="315" opacity="0.3"/>
+    <line x1="767" y1="320" x2="832" y2="315" opacity="0.3"/>
+    <line x1="767" y1="320" x2="832" y2="375" opacity="0.25"/>
+    <line x1="767" y1="370" x2="832" y2="315" opacity="0.25"/>
+    <line x1="767" y1="370" x2="832" y2="375" opacity="0.3"/>
+  </g>
+
+  <!-- ── Shield icon (security) ── -->
+  <g transform="translate(960, 195)" filter="url(#softglow)">
+    <path d="M80,0 L160,30 L160,110 Q160,175 80,210 Q0,175 0,110 L0,30 Z"
+          fill="none" stroke="url(#shieldGrad)" stroke-width="3.5" opacity="0.85"/>
+    <!-- Check mark inside shield -->
+    <polyline points="45,108 70,138 120,85" fill="none" stroke="#00c8a0" stroke-width="7"
+              stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+  </g>
+
+  <!-- ── Text ── -->
+  <!-- Main title -->
+  <text x="600" y="510" text-anchor="middle"
+        font-family="'SF Mono','Fira Code','Consolas',monospace"
+        font-size="52" font-weight="700" letter-spacing="2"
+        fill="#e6edf3" filter="url(#textglow)">
+    Edge AI Smart Security Hub
+  </text>
+  <!-- Subtitle -->
+  <text x="600" y="556" text-anchor="middle"
+        font-family="'SF Mono','Fira Code','Consolas',monospace"
+        font-size="22" font-weight="400" letter-spacing="4"
+        fill="#00c8a0" opacity="0.85">
+    ARDUINO UNO Q  ·  TinyML  ·  Acoustic Detection
+  </text>
+
+  <!-- Top-left: board label -->
+  <text x="52" y="52"
+        font-family="'SF Mono','Fira Code','Consolas',monospace"
+        font-size="14" letter-spacing="3" fill="#00c8a0" opacity="0.6">
+    ARDUINO UNO Q
+  </text>
+  <!-- Top-right: LED matrix label -->
+  <text x="1148" y="52" text-anchor="end"
+        font-family="'SF Mono','Fira Code','Consolas',monospace"
+        font-size="14" letter-spacing="3" fill="#00c8a0" opacity="0.6">
+    13×8 LED MATRIX
+  </text>
+
+  <!-- Corner accent lines -->
+  <g stroke="#00c8a0" stroke-width="2" opacity="0.4">
+    <polyline points="40,20 20,20 20,60"/>
+    <polyline points="1160,20 1180,20 1180,60"/>
+    <polyline points="40,610 20,610 20,570"/>
+    <polyline points="1160,610 1180,610 1180,570"/>
+  </g>
+</svg>

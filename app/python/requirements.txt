@@ -1,0 +1,1 @@
+# No extra dependencies — WebUI, Bridge, and App are in the arduino base image

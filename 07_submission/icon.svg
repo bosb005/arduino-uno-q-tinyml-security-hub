@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0a0f1a"/>
+      <stop offset="100%" style="stop-color:#0d1f2d"/>
+    </linearGradient>
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#00dba8"/>
+      <stop offset="100%" style="stop-color:#00979D"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="outerglow">
+      <feGaussianBlur stdDeviation="14" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <clipPath id="roundclip">
+      <rect width="512" height="512" rx="96"/>
+    </clipPath>
+  </defs>
+
+  <!-- Background rounded square -->
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+
+  <!-- Subtle grid -->
+  <g clip-path="url(#roundclip)" stroke="#162030" stroke-width="1" opacity="0.7">
+    <line x1="0"   y1="128" x2="512" y2="128"/>
+    <line x1="0"   y1="256" x2="512" y2="256"/>
+    <line x1="0"   y1="384" x2="512" y2="384"/>
+    <line x1="128" y1="0"   x2="128" y2="512"/>
+    <line x1="256" y1="0"   x2="256" y2="512"/>
+    <line x1="384" y1="0"   x2="384" y2="512"/>
+  </g>
+
+  <!-- Shield — centred, large -->
+  <g transform="translate(256,252)" filter="url(#outerglow)">
+    <path d="M0,-148 L118,-108 L118,24 Q118,122 0,168 Q-118,122 -118,24 L-118,-108 Z"
+          fill="#0a1a28" stroke="url(#shieldGrad)" stroke-width="5" stroke-linejoin="round"/>
+  </g>
+
+  <!-- LED matrix pixel strip across shield centre — 5 lit pixels -->
+  <g filter="url(#glow)" fill="#00c8a0">
+    <rect x="152" y="234" width="22" height="22" rx="5" opacity="0.95"/>
+    <rect x="182" y="234" width="22" height="22" rx="5" opacity="0.95"/>
+    <rect x="212" y="234" width="22" height="22" rx="5" opacity="0.95"/>
+    <rect x="242" y="234" width="22" height="22" rx="5" opacity="0.95"/>
+    <rect x="272" y="234" width="22" height="22" rx="5" opacity="0.95"/>
+    <!-- row below — narrower, person torso -->
+    <rect x="197" y="264" width="22" height="22" rx="5" opacity="0.7"/>
+    <rect x="227" y="264" width="22" height="22" rx="5" opacity="0.7"/>
+    <rect x="257" y="264" width="22" height="22" rx="5" opacity="0.7"/>
+    <!-- row above — head -->
+    <rect x="212" y="200" width="22" height="22" rx="5" opacity="0.9"/>
+    <rect x="242" y="200" width="22" height="22" rx="5" opacity="0.9"/>
+  </g>
+  <!-- dim off-pixels to hint at matrix grid -->
+  <g fill="#00c8a0" opacity="0.07">
+    <rect x="122" y="200" width="22" height="22" rx="5"/>
+    <rect x="152" y="200" width="22" height="22" rx="5"/>
+    <rect x="182" y="200" width="22" height="22" rx="5"/>
+    <rect x="272" y="200" width="22" height="22" rx="5"/>
+    <rect x="302" y="200" width="22" height="22" rx="5"/>
+    <rect x="332" y="200" width="22" height="22" rx="5"/>
+    <rect x="122" y="234" width="22" height="22" rx="5"/>
+    <rect x="302" y="234" width="22" height="22" rx="5"/>
+    <rect x="332" y="234" width="22" height="22" rx="5"/>
+    <rect x="152" y="264" width="22" height="22" rx="5"/>
+    <rect x="287" y="264" width="22" height="22" rx="5"/>
+    <rect x="317" y="264" width="22" height="22" rx="5"/>
+  </g>
+
+  <!-- Sound wave arcs (left of shield) -->
+  <g stroke="#00c8a0" fill="none" stroke-linecap="round">
+    <path d="M136,222 Q108,252 136,282" stroke-width="4" opacity="0.55" filter="url(#glow)"/>
+    <path d="M114,206 Q72,252 114,298"  stroke-width="3.5" opacity="0.4"/>
+    <path d="M93,190  Q38,252 93,314"   stroke-width="3" opacity="0.25"/>
+  </g>
+
+  <!-- Sound wave arcs (right of shield) -->
+  <g stroke="#00c8a0" fill="none" stroke-linecap="round">
+    <path d="M376,222 Q404,252 376,282" stroke-width="4" opacity="0.55" filter="url(#glow)"/>
+    <path d="M398,206 Q440,252 398,298"  stroke-width="3.5" opacity="0.4"/>
+    <path d="M419,190 Q474,252 419,314"  stroke-width="3" opacity="0.25"/>
+  </g>
+
+  <!-- Status bar dots (bottom of shield — 3 bright + 1 pulse) -->
+  <g filter="url(#glow)" fill="#00c8a0">
+    <circle cx="210" cy="340" r="9" opacity="0.9"/>
+    <circle cx="240" cy="340" r="9" opacity="0.9"/>
+    <circle cx="270" cy="340" r="9" opacity="0.9"/>
+    <circle cx="300" cy="340" r="5" opacity="0.45"/>
+  </g>
+
+  <!-- Bottom label -->
+  <text x="256" y="454" text-anchor="middle"
+        font-family="'SF Mono','Fira Code','Consolas',monospace"
+        font-size="21" font-weight="700" letter-spacing="4"
+        fill="#00c8a0" opacity="0.75">
+    SECURITY HUB
+  </text>
+</svg>

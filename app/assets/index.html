@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Security Hub</title>
+  <script src="./libs/socket.io.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0d1117; --surface: #161b22; --border: #30363d;
+      --text: #e6edf3; --muted: #8b949e; --accent: #58a6ff;
+      --idle: #3fb950; --presence: #d29922; --anomaly: #f85149; --trigger: #bc8cff;
+    }
+    body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; }
+    header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 1rem 1.5rem; display: flex; align-items: center; gap: .75rem; }
+    header h1 { font-size: 1.2rem; font-weight: 600; }
+    #conn-dot { width: 10px; height: 10px; border-radius: 50%; background: #f85149; margin-left: auto; transition: background .3s; }
+    #conn-dot.connected { background: #3fb950; }
+    main { max-width: 900px; margin: 0 auto; padding: 1.5rem; display: grid; gap: 1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; }
+    .card h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 1rem; }
+    #event-badge {
+      display: inline-block; padding: .5rem 1.25rem; border-radius: 20px;
+      font-size: 1.5rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+      background: #21262d; color: var(--idle); border: 2px solid var(--idle);
+      transition: all .3s;
+    }
+    #event-badge.presence  { color: var(--presence);  border-color: var(--presence); }
+    #event-badge.anomaly   { color: var(--anomaly);   border-color: var(--anomaly); }
+    #event-badge.manual_trigger { color: var(--trigger); border-color: var(--trigger); }
+    #event-badge.idle      { color: var(--idle);      border-color: var(--idle); }
+    .meta-row { display: flex; gap: 2rem; margin-top: .75rem; font-size: .9rem; color: var(--muted); }
+    .meta-row span b { color: var(--text); }
+    #conf-bar-wrap { background: #21262d; border-radius: 4px; height: 8px; margin-top: .5rem; overflow: hidden; }
+    #conf-bar { height: 100%; width: 0; background: var(--accent); border-radius: 4px; transition: width .4s; }
+    #history-list { list-style: none; max-height: 300px; overflow-y: auto; }
+    #history-list li {
+      display: grid; grid-template-columns: 1fr 120px 100px;
+      padding: .4rem 0; border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted);
+    }
+    #history-list li:last-child { border-bottom: none; }
+    #history-list li .ev { font-weight: 600; }
+    #history-list li .ev.presence    { color: var(--presence); }
+    #history-list li .ev.anomaly     { color: var(--anomaly); }
+    #history-list li .ev.manual_trigger { color: var(--trigger); }
+    #history-list li .ev.idle        { color: var(--idle); }
+    .tag-mock { background: #5a3825; color: #ffa657; font-size: .7rem; padding: .15rem .5rem; border-radius: 3px; margin-left: .5rem; vertical-align: middle; }
+  </style>
+</head>
+<body>
+<header>
+  <span>🔒</span>
+  <h1>Edge AI Security Hub</h1>
+  <span id="mock-tag"></span>
+  <span id="conn-dot" title="WebSocket"></span>
+</header>
+<main>
+  <div class="card" id="current-card">
+    <h2>Current Detection</h2>
+    <span id="event-badge" class="idle">idle</span>
+    <div class="meta-row">
+      <span>Confidence: <b id="conf-val">—</b></span>
+      <span>Updated: <b id="updated-val">—</b></span>
+    </div>
+    <div id="conf-bar-wrap"><div id="conf-bar"></div></div>
+  </div>
+  <div class="card">
+    <h2>Recent Events</h2>
+    <ul id="history-list"><li style="color:var(--muted);grid-template-columns:1fr">No events yet</li></ul>
+  </div>
+</main>
+<script>
+  const serverOrigin = window.location.origin;
+  const socket = io(serverOrigin, {
+    path: '/socket.io',
+    transports: ['polling', 'websocket'],
+    autoConnect: true
+  });
+  const dot = document.getElementById('conn-dot');
+  socket.on('connect', () => dot.classList.add('connected'));
+  socket.on('disconnect', () => dot.classList.remove('connected'));
+
+  const badge   = document.getElementById('event-badge');
+  const confVal = document.getElementById('conf-val');
+  const updVal  = document.getElementById('updated-val');
+  const confBar = document.getElementById('conf-bar');
+  const histList= document.getElementById('history-list');
+  const mockTag = document.getElementById('mock-tag');
+
+  socket.on('acoustic_event', (data) => {
+    const ev   = data.current_event || 'idle';
+    const conf = (data.confidence || 0);
+    badge.textContent = ev.replace('_', ' ');
+    badge.className = ev;
+    confVal.textContent = (conf * 100).toFixed(1) + '%';
+    updVal.textContent  = data.last_updated || '—';
+    confBar.style.width = (conf * 100) + '%';
+
+    // History
+    const hist = data.history || [];
+    if (hist.length === 0) return;
+    histList.innerHTML = hist.slice(0, 30).map(h => {
+      const evName = h.event || 'idle';
+      return `<li>
+        <span class="ev ${evName}">${evName.replace('_',' ')}</span>
+        <span>${(h.confidence*100).toFixed(1)}%</span>
+        <span style="font-size:.8rem">${h.last_updated || ''}</span>
+      </li>`;
+    }).join('');
+  });
+
+  // Fetch health to show mock badge
+  fetch('/health').then(r => r.json()).then(d => {
+    if (d.mock) mockTag.innerHTML = '<span class="tag-mock">MOCK</span>';
+  }).catch(() => {});
+</script>
+</body>
+</html>

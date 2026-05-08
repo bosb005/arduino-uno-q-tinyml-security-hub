@@ -1,0 +1,38 @@
+Hardware: https://docs.arduino.cc/tutorials/uno-q/user-manual/
+Available local via IP/SSH
+Only sensor I will attach via qwuic adapter: INMP441
+-----
+I need to build the following project, because I got arwarded hardware, but only with realy minimal efford
+https://www.hackster.io/contests/invent-the-future-with-arduino-uno-q-and-app-lab
+-----
+project idea:
+Edge AI Smart Security Hub
+Which scenario will your solution address?
+Home Automation - AI-Powered Smart Security Hub
+What are you going to build?
+I am building an AI-Powered Smart Security Hub that performs real-time acoustic event detection at the edge using the Arduino UNO Q and a digital I2S microphone (INMP441). The device acts as a privacy-first home automation node capable of detecting security-relevant sound events such as human presence, sudden high-energy impulses, and manual acoustic triggers. All processing is performed locally on the board without streaming audio to the cloud.
+How does your solution work? What are the main features?
+The system continuously captures 16 kHz digital audio through the INMP441 using the I2S interface of the Arduino UNO Q. Audio data is processed on the microcontroller core where MFCC features are extracted. A lightweight TinyML model performs real-time classification of acoustic events. The Linux side of the board hosts a local web dashboard over Wi-Fi to display the current security state and detected events. Main features: * Digital I2S audio capture (clean signal acquisition) * On-device MFCC feature extraction * Embedded neural network inference (TinyML) * Real-time event detection (presence, anomaly, manual trigger) * Local Wi-Fi dashboard * Fully offline operation (no cloud dependency) * Dual-core utilization (MCU + Linux environment)
+Will your project focus on sustainable solutions (i.e. reducing energy consumption, minimizing waste)? How?
+Yes. The project is designed as a low-power, edge-based alternative to cloud-dependent smart security systems. By performing inference locally: * No continuous audio streaming to cloud servers * Reduced bandwidth usage * Lower overall energy consumption in network infrastructure * Extended hardware lifespan due to minimal external dependencies The system also uses minimal hardware (single board + digital microphone), reducing component waste and complexity.
+Briefly explain your user experience. How intuitive and user-friendly is your solution? Can it be easily integrated into existing systems or workflows?
+The device operates autonomously after setup. Users connect to a simple local web dashboard via Wi-Fi, where they can monitor the current security state and detected events in real time. No specialized software is required — only a browser. The interface presents clear status indicators (presence detected, anomaly detected, idle state). Integration is straightforward: * Can act as a local automation trigger * Can be extended to send MQTT messages * Can integrate with existing smart home platforms The system is designed to function as a plug-and-play security node.
+Consider the scalability of your project. How can it be expanded to serve a larger audience or be applied in different contexts?
+The architecture supports distributed deployment. Multiple nodes can be placed in different rooms to create a decentralized acoustic monitoring network. The AI model can be retrained for different environments or use cases, such as: * Glass-break detection * Alarm recognition * Industrial anomaly detection * Elderly monitoring * Classroom presence tracking Because inference runs on-device, scaling does not increase cloud costs or bandwidth requirements. The same architecture can be applied in homes, offices, or light industrial environments.
+How will you use App Lab in your project?
+App Lab will be used to streamline development, testing, and deployment of the system on the Arduino UNO Q. It will support: * Managing the dual-core architecture * Deploying and testing the embedded application * Running and hosting the web dashboard * Managing connectivity and system services App Lab simplifies integration between the microcontroller side (real-time audio processing) and the Linux side (network services and dashboard), accelerating development and ensuring reliable deployment.
+How will you integrate AI in your project?
+AI is integrated through on-device TinyML inference. Audio signals are converted into MFCC features and processed by a lightweight neural network trained with Edge Impulse. The model runs directly on the microcontroller core, enabling real-time acoustic event classification without sending data to the cloud.
+-----
+
+Break it down in seperate tasks, make a directory for each, create a file I can use then there to give to copilot (you) to implement it.
+Collect your findings for distribution also in a file in main directory, so you remember your decisions if we refine it later.
+
+My idea for seperation:
+- Microphone handling and electrical connection
+- AI training and model creation for audio processing
+- Wi-Fi dashboard
+- Final project submissioin and presentation
+
+maybe you find more or other seperations.
+
