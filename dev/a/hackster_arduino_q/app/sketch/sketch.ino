@@ -121,8 +121,10 @@ static void run_inference() {
     return;
   }
 
+  bool heartbeat_due = (now - _last_bridge >= BRIDGE_INTERVAL_MS);
+
   signal_t signal;
-  signal.total_length = AUDIO_FRAME_SAMPLES;
+  signal.total_length = EI_CLASSIFIER_RAW_SAMPLE_COUNT;  // must equal 16000
   signal.get_data     = get_signal_data;
 
   ei_impulse_result_t result = {0};
@@ -131,6 +133,11 @@ static void run_inference() {
   g_audio_frame = nullptr;
 
   if (err != EI_IMPULSE_OK) {
+    // Inference error — still pulse heartbeat so LEDs stay alive.
+    if (heartbeat_due) {
+      _last_bridge = now;
+      draw_with_status(label_to_icon(_label));
+    }
     return;
   }
 
@@ -149,8 +156,7 @@ static void run_inference() {
     best_label = "idle";
   }
 
-  bool changed       = (strcmp(best_label, _label) != 0);
-  bool heartbeat_due = (now - _last_bridge >= BRIDGE_INTERVAL_MS);
+  bool changed = (strcmp(best_label, _label) != 0);
 
   if (changed || heartbeat_due) {
     _label       = best_label;
