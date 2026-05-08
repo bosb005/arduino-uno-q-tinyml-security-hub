@@ -24,6 +24,15 @@ ZIP_NAME="security-hub-acoustic_inferencing.zip"
 
 API_KEY=""
 STEP="all"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# Auto-load ei.env from repo root if present
+if [[ -f "$REPO_ROOT/ei.env" ]]; then
+  # shellcheck source=/dev/null
+  source "$REPO_ROOT/ei.env"
+  [[ -n "${EI_API_KEY:-}" ]] && API_KEY="$EI_API_KEY"
+fi
 
 # ── Parse args ────────────────────────────────────────────────────────────
 while [[ $# -gt 0 ]]; do
@@ -68,6 +77,14 @@ print(f'✓ API key valid. Projects: {projects}')
 }
 
 step_get_project_id() {
+  # Use project ID from ei.env if available
+  if [[ -n "${EI_PROJECT_ID:-}" ]]; then
+    PROJECT_ID="$EI_PROJECT_ID"
+    echo "✓ Using project ID from ei.env: $PROJECT_ID"
+    export PROJECT_ID
+    return
+  fi
+
   PROJECTS_JSON=$(ei_get "/projects")
   PROJECT_ID=$(echo "$PROJECTS_JSON" | python3 -c "
 import json,sys
@@ -121,30 +138,19 @@ step_configure() {
   echo "Setting impulse design (MFCC + Dense NN)..."
   IMPULSE_PAYLOAD='{
     "inputBlocks": [{
-      "id": 1,
-      "type": "time-series",
-      "name": "Audio",
-      "title": "Audio",
-      "windowSizeMs": 1000,
-      "windowIncreaseMs": 500,
-      "frequencyHz": 16000,
-      "padZeros": true
+      "id": 1, "type": "time-series", "name": "Audio input", "title": "Time series",
+      "windowSizeMs": 1000, "windowIncreaseMs": 500,
+      "frequencyHz": 16000, "padZeros": true
     }],
     "dspBlocks": [{
-      "id": 2,
-      "type": "audio-mfcc",
-      "name": "MFCC",
-      "title": "MFCC",
-      "axes": ["audio"],
-      "input": 1
+      "id": 2, "type": "mfcc", "name": "MFCC", "title": "Audio (MFCC)",
+      "axes": ["audio"], "input": 1, "implementationVersion": 4
     }],
     "learnBlocks": [{
-      "id": 3,
-      "type": "keras",
-      "name": "NN Classifier",
-      "title": "NN Classifier",
+      "id": 3, "type": "keras", "name": "NN Classifier", "title": "Classification",
       "dsp": [2]
-    }]
+    }],
+    "postProcessingBlocks": []
   }'
   RESULT=$(ei_post "/$PROJECT_ID/impulse" "$IMPULSE_PAYLOAD")
   echo "$RESULT" | python3 -c "
@@ -189,14 +195,13 @@ step_train() {
   echo "── Training ─────────────────────────────────────────────"
   step_get_project_id
 
-  # Step 1: generate DSP features first
+  # Step 1: generate DSP features (block ID 2)
   echo "Generating DSP features (MFCC)..."
   GEN=$(ei_post "/$PROJECT_ID/jobs/generate-features" '{"dspId":2}')
   GEN_JOB=$(echo "$GEN" | python3 -c "
 import json,sys
 d=json.load(sys.stdin)
-# feature generation is optional if already done; ignore failure
-print(d.get('id', d.get('jobId', '')))
+print(d.get('id', ''))
 " 2>/dev/null || echo "")
 
   if [[ -n "$GEN_JOB" ]]; then
@@ -204,16 +209,20 @@ print(d.get('id', d.get('jobId', '')))
     _wait_for_job "$GEN_JOB"
   fi
 
-  # Step 2: train the impulse
+  # Step 2: train the keras learn block (ID 3)
   echo "Triggering training job for project $PROJECT_ID..."
-  TRAIN=$(ei_post "/$PROJECT_ID/jobs/train-impulse" '{}')
+  TRAIN=$(curl -fsSL -X POST \
+    -H "x-api-key: $API_KEY" \
+    -H "Content-Type: application/json" \
+    -d '{"mode":"visual","trainingCycles":100,"learningRate":0.0005,"batchSize":32,"profileInt8":true}' \
+    "$EI_BASE/$PROJECT_ID/jobs/train/keras/3")
   JOB_ID=$(echo "$TRAIN" | python3 -c "
 import json,sys
 d=json.load(sys.stdin)
 if not d.get('success'):
     print('ERROR:', d.get('error','unknown'), file=sys.stderr)
     sys.exit(1)
-print(d.get('id', d.get('jobId', '')))
+print(d.get('id', ''))
 ")
   echo "✓ Training job started: $JOB_ID"
   echo ""
@@ -252,17 +261,41 @@ step_export() {
 
   mkdir -p "$EXPORT_DIR" "$FIRMWARE_DIR"
 
+  # Step 1: trigger build
+  echo "Building Arduino library deployment..."
+  BUILD=$(curl -fsSL -X POST \
+    -H "x-api-key: $API_KEY" \
+    -H "Content-Type: application/json" \
+    -d '{"engine":"tflite-eon"}' \
+    "$EI_BASE/$PROJECT_ID/jobs/build-ondevice-model?type=arduino&impulseId=1")
+  BUILD_JOB=$(echo "$BUILD" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+if not d.get('success'):
+    print('ERROR:', d.get('error','unknown'), file=sys.stderr)
+    sys.exit(1)
+print(d.get('id',''))
+")
+  echo "✓ Build job started: $BUILD_JOB"
+  _wait_for_job "$BUILD_JOB"
+  echo "✓ Build complete!"
+
+  # Step 2: download the ZIP
   echo "Downloading Arduino library ZIP for project $PROJECT_ID..."
   curl -fSL \
     -H "x-api-key: $API_KEY" \
-    "$EI_BASE/$PROJECT_ID/deployment/download?type=arduino" \
+    "$EI_BASE/$PROJECT_ID/deployment/download?type=arduino&engine=tflite-eon&impulseId=1" \
     -o "$EXPORT_DIR/$ZIP_NAME"
 
   # Also copy to firmware folder for reference
   cp "$EXPORT_DIR/$ZIP_NAME" "$FIRMWARE_DIR/$ZIP_NAME"
 
+  # Print actual library name from ZIP
+  LIB_NAME=$(unzip -l "$EXPORT_DIR/$ZIP_NAME" 2>/dev/null | grep "/$" | head -1 | awk '{print $NF}' | tr -d '/')
   echo "✓ Saved to $EXPORT_DIR/$ZIP_NAME"
   echo "✓ Copied to $FIRMWARE_DIR/$ZIP_NAME"
+  echo ""
+  echo "Library name inside ZIP: $LIB_NAME"
   echo ""
   echo "Next steps:"
   echo "  1. In Arduino IDE: Sketch → Include Library → Add .ZIP Library"

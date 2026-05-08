@@ -8,13 +8,15 @@
 //   (export from Edge Impulse Dashboard → Deployment → Arduino library)
 
 #if defined(__has_include)
-#  if __has_include(<security-hub-acoustic_inferencing.h>)
+#  if __has_include(<both-project-1_inferencing.h>)
+#    include <both-project-1_inferencing.h>
+#  elif __has_include(<security-hub-acoustic_inferencing.h>)
 #    include <security-hub-acoustic_inferencing.h>
 #  else
 #    error "Install the Edge Impulse ZIP library first: Sketch > Include Library > Add .ZIP Library, then choose security-hub-acoustic_inferencing.zip from 03_ai_model/."
 #  endif
 #else
-#  include <security-hub-acoustic_inferencing.h>
+#  include <both-project-1_inferencing.h>
 #endif
 
 #include "Arduino_RouterBridge.h"
