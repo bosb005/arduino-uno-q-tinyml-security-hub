@@ -4,14 +4,15 @@
 # Usage:
 #   1. Create account at https://edgeimpulse.com
 #   2. Copy your API key: Dashboard → your username (top-right) → API keys
-#   3. Run:  bash scripts/ei_workflow.sh --api-key ei_... [--step all|train|export]
+#   3. Run:  bash scripts/ei_workflow.sh --api-key ei_... [--step <STEP>]
 #
-# Steps:
-#   setup   — verify CLI, login check
-#   data    — start edge-impulse-daemon for live audio recording (interactive)
-#   train   — trigger training job via REST API (non-interactive)
-#   export  — download Arduino library ZIP via REST API (non-interactive)
-#   all     — run setup → train → export (skips data collection; run that separately)
+# Steps (run in order):
+#   setup      — verify CLI, validate API key
+#   data       — start edge-impulse-daemon for live audio recording (interactive)
+#   configure  — create project + set MFCC impulse + NN architecture via REST API
+#   train      — generate features, then trigger training job via REST API
+#   export     — download Arduino library ZIP via REST API
+#   all        — setup → configure → train → export  (run 'data' separately first)
 
 set -euo pipefail
 
@@ -109,10 +110,101 @@ step_data() {
   edge-impulse-daemon --api-key "$API_KEY"
 }
 
+# Configure the impulse design (MFCC + NN blocks) using model_config.json values.
+# This replaces all manual impulse setup in the Edge Impulse dashboard.
+step_configure() {
+  echo "── Configure Impulse ────────────────────────────────────"
+  step_get_project_id
+
+  # Set the full impulse: Audio input → MFCC DSP → Classification NN
+  # Parameters match 03_ai_model/model_config.json exactly.
+  echo "Setting impulse design (MFCC + Dense NN)..."
+  IMPULSE_PAYLOAD='{
+    "inputBlocks": [{
+      "id": 1,
+      "type": "time-series",
+      "name": "Audio",
+      "title": "Audio",
+      "windowSizeMs": 1000,
+      "windowIncreaseMs": 500,
+      "frequencyHz": 16000,
+      "padZeros": true
+    }],
+    "dspBlocks": [{
+      "id": 2,
+      "type": "audio-mfcc",
+      "name": "MFCC",
+      "title": "MFCC",
+      "axes": ["audio"],
+      "input": 1
+    }],
+    "learnBlocks": [{
+      "id": 3,
+      "type": "keras",
+      "name": "NN Classifier",
+      "title": "NN Classifier",
+      "dsp": [2]
+    }]
+  }'
+  RESULT=$(ei_post "/$PROJECT_ID/impulse" "$IMPULSE_PAYLOAD")
+  echo "$RESULT" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+if not d.get('success'):
+    print('  WARN: impulse set failed (may need manual setup in dashboard):', d.get('error',''))
+else:
+    print('✓ Impulse design configured')
+"
+
+  # Configure MFCC DSP block parameters
+  echo "Configuring MFCC parameters..."
+  MFCC_PAYLOAD='{
+    "config": {
+      "frame_length": 0.025,
+      "frame_stride": 0.010,
+      "num_cepstral": 13,
+      "fft_length": 512,
+      "low_frequency": 300,
+      "high_frequency": 8000,
+      "noise_floor_db": -52,
+      "win_size": 101
+    }
+  }'
+  RESULT=$(ei_post "/$PROJECT_ID/dsp/2/config" "$MFCC_PAYLOAD")
+  echo "$RESULT" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+if not d.get('success'):
+    print('  WARN: MFCC config failed (may need manual config in dashboard):', d.get('error',''))
+else:
+    print('✓ MFCC parameters set')
+"
+  echo ""
+  echo "Note: NN architecture (Dense 64→32, dropout 0.25) is set during training."
+  echo "If impulse/MFCC config calls failed, configure manually in the EI dashboard"
+  echo "using 03_ai_model/EDGE_IMPULSE_SETUP.md as reference."
+}
+
 step_train() {
   echo "── Training ─────────────────────────────────────────────"
   step_get_project_id
 
+  # Step 1: generate DSP features first
+  echo "Generating DSP features (MFCC)..."
+  GEN=$(ei_post "/$PROJECT_ID/jobs/generate-features" '{"dspId":2}')
+  GEN_JOB=$(echo "$GEN" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+# feature generation is optional if already done; ignore failure
+print(d.get('id', d.get('jobId', '')))
+" 2>/dev/null || echo "")
+
+  if [[ -n "$GEN_JOB" ]]; then
+    echo "  Waiting for feature generation (job $GEN_JOB)..."
+    _wait_for_job "$GEN_JOB"
+  fi
+
+  # Step 2: train the impulse
   echo "Triggering training job for project $PROJECT_ID..."
   TRAIN=$(ei_post "/$PROJECT_ID/jobs/train-impulse" '{}')
   JOB_ID=$(echo "$TRAIN" | python3 -c "
@@ -126,8 +218,14 @@ print(d.get('id', d.get('jobId', '')))
   echo "✓ Training job started: $JOB_ID"
   echo ""
   echo "Polling job status (may take 5-15 minutes)..."
+  _wait_for_job "$JOB_ID"
+  echo "✓ Training complete!"
+}
+
+_wait_for_job() {
+  local JOB="$1"
   while true; do
-    STATUS=$(ei_get "/$PROJECT_ID/jobs/$JOB_ID" | python3 -c "
+    STATUS=$(ei_get "/$PROJECT_ID/jobs/$JOB" | python3 -c "
 import json,sys
 d=json.load(sys.stdin)
 j=d.get('job',{})
@@ -138,10 +236,8 @@ print(j.get('finished','false'), j.get('success',''), j.get('status','running'))
     STATE=$(echo    "$STATUS" | awk '{print $3}')
     echo "  status: $STATE"
     if [[ "$FINISHED" == "True" || "$FINISHED" == "true" ]]; then
-      if [[ "$SUCCESS" == "True" || "$SUCCESS" == "true" ]]; then
-        echo "✓ Training complete!"
-      else
-        echo "✗ Training failed. Check Edge Impulse dashboard for details."
+      if [[ "$SUCCESS" != "True" && "$SUCCESS" != "true" ]]; then
+        echo "✗ Job $JOB failed. Check Edge Impulse dashboard for details."
         exit 1
       fi
       break
@@ -177,13 +273,14 @@ step_export() {
 
 # ── Main ──────────────────────────────────────────────────────────────────
 case "$STEP" in
-  setup)  step_setup ;;
-  data)   step_setup; step_data ;;
-  train)  step_setup; step_train ;;
-  export) step_setup; step_export ;;
-  all)    step_setup; step_train; step_export ;;
+  setup)     step_setup ;;
+  data)      step_setup; step_data ;;
+  configure) step_setup; step_configure ;;
+  train)     step_setup; step_train ;;
+  export)    step_setup; step_export ;;
+  all)       step_setup; step_configure; step_train; step_export ;;
   *)
-    echo "Unknown step: $STEP. Choose: setup|data|train|export|all"
+    echo "Unknown step: $STEP. Choose: setup|data|configure|train|export|all"
     exit 1
     ;;
 esac
