@@ -1,0 +1,555 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 450" width="600" height="450">
+  <defs>
+    <linearGradient id="cbg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#080c18"/>
+      <stop offset="100%" stop-color="#0c1a2e"/>
+    </linearGradient>
+    <linearGradient id="cteal" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00c8a0"/>
+      <stop offset="100%" stop-color="#00979D"/>
+    </linearGradient>
+    <linearGradient id="cbar" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00c8a0" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#00979D" stop-opacity="0.7"/>
+    </linearGradient>
+    <linearGradient id="cbottom" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0a1320" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#060a12" stop-opacity="1"/>
+    </linearGradient>
+    <filter id="cg">
+      <feGaussianBlur stdDeviation="2.5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="ctg">
+      <feGaussianBlur stdDeviation="2" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <marker id="carr" viewBox="0 0 8 6" refX="7" refY="3"
+            markerWidth="7" markerHeight="6" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#00c8a0" opacity="0.7"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="600" height="450" fill="url(#cbg)"/>
+
+  <!-- Subtle grid -->
+  <g stroke="#182840" stroke-width="0.5" opacity="0.6">
+    <line x1="0"   y1="75"  x2="600" y2="75"/>
+    <line x1="0"   y1="150" x2="600" y2="150"/>
+    <line x1="0"   y1="225" x2="600" y2="225"/>
+    <line x1="0"   y1="300" x2="600" y2="300"/>
+    <line x1="150" y1="0"   x2="150" y2="305"/>
+    <line x1="270" y1="0"   x2="270" y2="305"/>
+    <line x1="375" y1="0"   x2="375" y2="305"/>
+    <line x1="500" y1="0"   x2="500" y2="305"/>
+  </g>
+
+  <!-- Top accent bar -->
+  <rect x="0" y="0" width="600" height="3" fill="url(#cteal)" opacity="0.9"/>
+
+  <!-- Bottom gradient overlay (text readability) -->
+  <rect x="0" y="285" width="600" height="165" fill="url(#cbottom)"/>
+
+  <!-- ═══════════════════════════════════════════════════ -->
+  <!-- ZONE 1: HARDWARE  (x: 16–148)                      -->
+  <!-- ═══════════════════════════════════════════════════ -->
+
+  <!-- Section label -->
+  <text x="82" y="47" text-anchor="middle"
+        font-family="'SF Mono','Fira Code','Consolas',monospace"
+        font-size="6.5" letter-spacing="2" fill="#00c8a0" opacity="0.45">HARDWARE</text>
+
+  <!-- Arduino UNO Q board body -->
+  <rect x="20" y="54" width="98" height="130" rx="5"
+        fill="#0c2218" stroke="#00c8a0" stroke-width="1.5"/>
+
+  <!-- PCB trace decoration (subtle) -->
+  <g stroke="#0f3020" stroke-width="1" fill="none" opacity="0.8">
+    <polyline points="28,80 28,70 38,70"/>
+    <polyline points="110,80 110,70 100,70"/>
+    <line x1="28" y1="155" x2="110" y2="155"/>
+  </g>
+
+  <!-- MCU chip (Renesas RA4M1) -->
+  <rect x="40" y="78" width="58" height="58" rx="3"
+        fill="#080f0c" stroke="#00979D" stroke-width="1"/>
+  <!-- Chip pin stubs (decorative) -->
+  <g fill="#00979D" opacity="0.5">
+    <rect x="35" y="83"  width="5" height="3" rx="1"/>
+    <rect x="35" y="91"  width="5" height="3" rx="1"/>
+    <rect x="35" y="99"  width="5" height="3" rx="1"/>
+    <rect x="35" y="107" width="5" height="3" rx="1"/>
+    <rect x="35" y="115" width="5" height="3" rx="1"/>
+    <rect x="35" y="123" width="5" height="3" rx="1"/>
+    <rect x="98" y="83"  width="5" height="3" rx="1"/>
+    <rect x="98" y="91"  width="5" height="3" rx="1"/>
+    <rect x="98" y="99"  width="5" height="3" rx="1"/>
+    <rect x="98" y="107" width="5" height="3" rx="1"/>
+    <rect x="98" y="115" width="5" height="3" rx="1"/>
+    <rect x="98" y="123" width="5" height="3" rx="1"/>
+  </g>
+  <!-- Cross-hatch on chip -->
+  <line x1="40" y1="107" x2="98" y2="107" stroke="#00979D" stroke-width="0.4" opacity="0.3"/>
+  <line x1="69" y1="78"  x2="69" y2="136" stroke="#00979D" stroke-width="0.4" opacity="0.3"/>
+  <text x="69" y="112" text-anchor="middle"
+        font-family="'SF Mono','Fira Code','Consolas',monospace"
+        font-size="7" fill="#00c8a0" opacity="0.75">RA4M1</text>
+  <text x="69" y="102" text-anchor="middle"
+        font-family="'SF Mono','Fira Code','Consolas',monospace"
+        font-size="5.5" fill="#00c8a0" opacity="0.45">MCU+Linux</text>
+
+  <!-- USB-C port (top) -->
+  <rect x="61" y="49" width="16" height="9" rx="3"
+        fill="#141428" stroke="#334" stroke-width="0.8"/>
+
+  <!-- GPIO pin headers (bottom row) -->
+  <g fill="#0a2015" stroke="#00c8a0" stroke-width="0.5" opacity="0.85">
+    <rect x="24"  y="182" width="7" height="8" rx="1"/>
+    <rect x="33"  y="182" width="7" height="8" rx="1"/>
+    <rect x="42"  y="182" width="7" height="8" rx="1"/>
+    <rect x="51"  y="182" width="7" height="8" rx="1"/>
+    <rect x="60"  y="182" width="7" height="8" rx="1"/>
+    <rect x="69"  y="182" width="7" height="8" rx="1"/>
+    <rect x="78"  y="182" width="7" height="8" rx="1"/>
+    <rect x="87"  y="182" width="7" height="8" rx="1"/>
+    <rect x="96"  y="182" width="7" height="8" rx="1"/>
+    <rect x="105" y="182" width="7" height="8" rx="1"/>
+  </g>
+
+  <!-- Board labels -->
+  <text x="69" y="68" text-anchor="middle"
+        font-family="'SF Mono','Fira Code','Consolas',monospace"
+        font-size="5.5" fill="#00c8a0" opacity="0.4">ARDUINO</text>
+  <text x="69" y="174" text-anchor="middle"
+        font-family="'SF Mono','Fira Code','Consolas',monospace"
+        font-size="9" font-weight="bold" fill="#00c8a0" opacity="0.9">UNO Q</text>
+
+  <!-- Wi-Fi indicator (top-right of board) -->
+  <g stroke="#00c8a0" fill="none" stroke-linecap="round" opacity="0.55">
+    <path d="M104,62 Q110,57 116,62" stroke-width="1.5"/>
+    <path d="M107,65 Q110,62 113,65" stroke-width="1.2"/>
+    <circle cx="110" cy="67" r="1.5" fill="#00c8a0" stroke="none"/>
+  </g>
+
+  <!-- INMP441 mic chip (below board) -->
+  <rect x="28" y="205" width="58" height="32" rx="3"
+        fill="#0a1a10" stroke="#00c8a0" stroke-width="1" opacity="0.95"/>
+  <!-- Mic chip detail (small circle = MEMS element) -->
+  <circle cx="43" cy="221" r="6" fill="none" stroke="#00979D" stroke-width="0.8" opacity="0.6"/>
+  <circle cx="43" cy="221" r="2" fill="#00979D" opacity="0.4"/>
+  <text x="72" y="218" text-anchor="middle"
+        font-family="'SF Mono','Fira Code','Consolas',monospace"
+        font-size="6.5" fill="#00c8a0" opacity="0.9">INMP441</text>
+  <text x="72" y="229" text-anchor="middle"
+        font-family="'SF Mono','Fira Code','Consolas',monospace"
+        font-size="5.5" fill="#00979D" opacity="0.65">I²S MEMS MIC</text>
+
+  <!-- I²S wire (mic to GPIO) -->
+  <polyline points="57,205 57,195 78,195 78,190"
+            stroke="#00c8a0" stroke-width="1" fill="none"
+            stroke-dasharray="3,2" opacity="0.6"/>
+  <text x="62" y="192" font-family="'SF Mono','Fira Code','Consolas',monospace"
+        font-size="5.5" fill="#00c8a0" opacity="0.5">I²S</text>
+
+  <!-- Sound waves from mic (right side) -->
+  <g stroke="#00c8a0" fill="none" stroke-linecap="round" opacity="0.55">
+    <path d="M86,221 Q91,214 96,221" stroke-width="1.2"/>
+    <path d="M89,221 Q95,211 101,221" stroke-width="1"/>
+    <path d="M92,221 Q99,208 106,221" stroke-width="0.8"/>
+  </g>
+
+  <!-- Flow arrow: board → processing -->
+  <line x1="118" y1="119" x2="148" y2="119"
+        stroke="#00c8a0" stroke-width="1.2" opacity="0.65"
+        marker-end="url(#carr)"/>
+  <text x="133" y="113" text-anchor="middle"
+        font-family="'SF Mono','Fira Code','Consolas',monospace"
+        font-size="5" fill="#00c8a0" opacity="0.45">16 kHz</text>
+
+  <!-- ═══════════════════════════════════════════════════ -->
+  <!-- ZONE 2: DSP / MFCC  (x: 153–268)                  -->
+  <!-- ═══════════════════════════════════════════════════ -->
+
+  <!-- Section label -->
+  <text x="210" y="47" text-anchor="middle"
+        font-family="'SF Mono','Fira Code','Consolas',monospace"
+        font-size="6.5" letter-spacing="2" fill="#00c8a0" opacity="0.45">DSP / MFCC</text>
+
+  <!-- Waveform amplitude bars (x:155–260, centered at y=96) -->
+  <g fill="#00c8a0">
+    <rect x="155" y="92"  width="3" height="8"  rx="1" opacity="0.35"/>
+    <rect x="160" y="87"  width="3" height="18" rx="1" opacity="0.55"/>
+    <rect x="165" y="82"  width="3" height="28" rx="1" opacity="0.7"/>
+    <rect x="170" y="85"  width="3" height="22" rx="1" opacity="0.6"/>
+    <rect x="175" y="78"  width="3" height="36" rx="1" opacity="0.9" filter="url(#cg)"/>
+    <rect x="180" y="86"  width="3" height="20" rx="1" opacity="0.6"/>
+    <rect x="185" y="80"  width="3" height="32" rx="1" opacity="0.8" filter="url(#cg)"/>
+    <rect x="190" y="89"  width="3" height="14" rx="1" opacity="0.5"/>
+    <rect x="195" y="93"  width="3" height="6"  rx="1" opacity="0.35"/>
+    <rect x="200" y="90"  width="3" height="12" rx="1" opacity="0.45"/>
+    <rect x="205" y="84"  width="3" height="24" rx="1" opacity="0.65"/>
+    <rect x="210" y="79"  width="3" height="34" rx="1" opacity="0.85" filter="url(#cg)"/>
+    <rect x="215" y="83"  width="3" height="26" rx="1" opacity="0.7"/>
+    <rect x="220" y="88"  width="3" height="16" rx="1" opacity="0.55"/>
+    <rect x="225" y="94"  width="3" height="4"  rx="1" opacity="0.3"/>
+    <rect x="230" y="89"  width="3" height="14" rx="1" opacity="0.5"/>
+    <rect x="235" y="85"  width="3" height="22" rx="1" opacity="0.6"/>
+    <rect x="240" y="91"  width="3" height="10" rx="1" opacity="0.42"/>
+    <rect x="245" y="87"  width="3" height="18" rx="1" opacity="0.55"/>
+    <rect x="250" y="83"  width="3" height="26" rx="1" opacity="0.68"/>
+    <rect x="255" y="89"  width="3" height="14" rx="1" opacity="0.5"/>
+    <rect x="260" y="93"  width="3" height="6"  rx="1" opacity="0.35"/>
+  </g>
+
+  <!-- MFCC label + arrow -->
+  <text x="155" y="118" font-family="'SF Mono','Fira Code','Consolas',monospace"
+        font-size="6" fill="#00c8a0" opacity="0.4">MFCC ▼</text>
+
+  <!-- MFCC spectrogram grid: 11 cols × 8 rows, cell 9×9, gap 1 → step 10 -->
+  <!-- x_start=155, y_start=126 -->
+  <!-- Colors: bright #00c8a0 on dark bg, opacity varies per cell -->
+  <!-- Row 0 (y=126) — low freq, moderate -->
+  <g fill="#00c8a0">
+    <rect x="155" y="126" width="9" height="9" rx="1" opacity="0.38"/>
+    <rect x="165" y="126" width="9" height="9" rx="1" opacity="0.52"/>
+    <rect x="175" y="126" width="9" height="9" rx="1" opacity="0.62"/>
+    <rect x="185" y="126" width="9" height="9" rx="1" opacity="0.48"/>
+    <rect x="195" y="126" width="9" height="9" rx="1" opacity="0.3"/>
+    <rect x="205" y="126" width="9" height="9" rx="1" opacity="0.48"/>
+    <rect x="215" y="126" width="9" height="9" rx="1" opacity="0.58"/>
+    <rect x="225" y="126" width="9" height="9" rx="1" opacity="0.52"/>
+    <rect x="235" y="126" width="9" height="9" rx="1" opacity="0.38"/>
+    <rect x="245" y="126" width="9" height="9" rx="1" opacity="0.26"/>
+    <rect x="255" y="126" width="9" height="9" rx="1" opacity="0.42"/>
+    <!-- Row 1 (y=136) — mid-low freq, higher activity -->
+    <rect x="155" y="136" width="9" height="9" rx="1" opacity="0.62"/>
+    <rect x="165" y="136" width="9" height="9" rx="1" opacity="0.82"/>
+    <rect x="175" y="136" width="9" height="9" rx="1" opacity="0.92" filter="url(#cg)"/>
+    <rect x="185" y="136" width="9" height="9" rx="1" opacity="0.72"/>
+    <rect x="195" y="136" width="9" height="9" rx="1" opacity="0.44"/>
+    <rect x="205" y="136" width="9" height="9" rx="1" opacity="0.7"/>
+    <rect x="215" y="136" width="9" height="9" rx="1" opacity="0.84"/>
+    <rect x="225" y="136" width="9" height="9" rx="1" opacity="0.92" filter="url(#cg)"/>
+    <rect x="235" y="136" width="9" height="9" rx="1" opacity="0.64"/>
+    <rect x="245" y="136" width="9" height="9" rx="1" opacity="0.44"/>
+    <rect x="255" y="136" width="9" height="9" rx="1" opacity="0.56"/>
+    <!-- Row 2 (y=146) — peak activity -->
+    <rect x="155" y="146" width="9" height="9" rx="1" opacity="0.58"/>
+    <rect x="165" y="146" width="9" height="9" rx="1" opacity="0.78"/>
+    <rect x="175" y="146" width="9" height="9" rx="1" opacity="0.96" filter="url(#cg)"/>
+    <rect x="185" y="146" width="9" height="9" rx="1" opacity="0.76"/>
+    <rect x="195" y="146" width="9" height="9" rx="1" opacity="0.5"/>
+    <rect x="205" y="146" width="9" height="9" rx="1" opacity="0.78"/>
+    <rect x="215" y="146" width="9" height="9" rx="1" opacity="0.9" filter="url(#cg)"/>
+    <rect x="225" y="146" width="9" height="9" rx="1" opacity="0.84"/>
+    <rect x="235" y="146" width="9" height="9" rx="1" opacity="0.6"/>
+    <rect x="245" y="146" width="9" height="9" rx="1" opacity="0.4"/>
+    <rect x="255" y="146" width="9" height="9" rx="1" opacity="0.52"/>
+    <!-- Row 3 (y=156) -->
+    <rect x="155" y="156" width="9" height="9" rx="1" opacity="0.44"/>
+    <rect x="165" y="156" width="9" height="9" rx="1" opacity="0.62"/>
+    <rect x="175" y="156" width="9" height="9" rx="1" opacity="0.7"/>
+    <rect x="185" y="156" width="9" height="9" rx="1" opacity="0.54"/>
+    <rect x="195" y="156" width="9" height="9" rx="1" opacity="0.33"/>
+    <rect x="205" y="156" width="9" height="9" rx="1" opacity="0.58"/>
+    <rect x="215" y="156" width="9" height="9" rx="1" opacity="0.68"/>
+    <rect x="225" y="156" width="9" height="9" rx="1" opacity="0.62"/>
+    <rect x="235" y="156" width="9" height="9" rx="1" opacity="0.48"/>
+    <rect x="245" y="156" width="9" height="9" rx="1" opacity="0.3"/>
+    <rect x="255" y="156" width="9" height="9" rx="1" opacity="0.44"/>
+    <!-- Row 4 (y=166) — tapering off -->
+    <rect x="155" y="166" width="9" height="9" rx="1" opacity="0.28"/>
+    <rect x="165" y="166" width="9" height="9" rx="1" opacity="0.43"/>
+    <rect x="175" y="166" width="9" height="9" rx="1" opacity="0.5"/>
+    <rect x="185" y="166" width="9" height="9" rx="1" opacity="0.38"/>
+    <rect x="195" y="166" width="9" height="9" rx="1" opacity="0.2"/>
+    <rect x="205" y="166" width="9" height="9" rx="1" opacity="0.38"/>
+    <rect x="215" y="166" width="9" height="9" rx="1" opacity="0.48"/>
+    <rect x="225" y="166" width="9" height="9" rx="1" opacity="0.43"/>
+    <rect x="235" y="166" width="9" height="9" rx="1" opacity="0.3"/>
+    <rect x="245" y="166" width="9" height="9" rx="1" opacity="0.18"/>
+    <rect x="255" y="166" width="9" height="9" rx="1" opacity="0.28"/>
+    <!-- Row 5 (y=176) -->
+    <rect x="155" y="176" width="9" height="9" rx="1" opacity="0.18"/>
+    <rect x="165" y="176" width="9" height="9" rx="1" opacity="0.28"/>
+    <rect x="175" y="176" width="9" height="9" rx="1" opacity="0.33"/>
+    <rect x="185" y="176" width="9" height="9" rx="1" opacity="0.24"/>
+    <rect x="195" y="176" width="9" height="9" rx="1" opacity="0.13"/>
+    <rect x="205" y="176" width="9" height="9" rx="1" opacity="0.26"/>
+    <rect x="215" y="176" width="9" height="9" rx="1" opacity="0.32"/>
+    <rect x="225" y="176" width="9" height="9" rx="1" opacity="0.28"/>
+    <rect x="235" y="176" width="9" height="9" rx="1" opacity="0.18"/>
+    <rect x="245" y="176" width="9" height="9" rx="1" opacity="0.12"/>
+    <rect x="255" y="176" width="9" height="9" rx="1" opacity="0.2"/>
+    <!-- Row 6 (y=186) — high freq, very dim -->
+    <rect x="155" y="186" width="9" height="9" rx="1" opacity="0.1"/>
+    <rect x="165" y="186" width="9" height="9" rx="1" opacity="0.16"/>
+    <rect x="175" y="186" width="9" height="9" rx="1" opacity="0.18"/>
+    <rect x="185" y="186" width="9" height="9" rx="1" opacity="0.13"/>
+    <rect x="195" y="186" width="9" height="9" rx="1" opacity="0.07"/>
+    <rect x="205" y="186" width="9" height="9" rx="1" opacity="0.15"/>
+    <rect x="215" y="186" width="9" height="9" rx="1" opacity="0.18"/>
+    <rect x="225" y="186" width="9" height="9" rx="1" opacity="0.16"/>
+    <rect x="235" y="186" width="9" height="9" rx="1" opacity="0.1"/>
+    <rect x="245" y="186" width="9" height="9" rx="1" opacity="0.07"/>
+    <rect x="255" y="186" width="9" height="9" rx="1" opacity="0.12"/>
+    <!-- Row 7 (y=196) — highest freq, almost off -->
+    <rect x="155" y="196" width="9" height="9" rx="1" opacity="0.05"/>
+    <rect x="165" y="196" width="9" height="9" rx="1" opacity="0.09"/>
+    <rect x="175" y="196" width="9" height="9" rx="1" opacity="0.11"/>
+    <rect x="185" y="196" width="9" height="9" rx="1" opacity="0.07"/>
+    <rect x="195" y="196" width="9" height="9" rx="1" opacity="0.04"/>
+    <rect x="205" y="196" width="9" height="9" rx="1" opacity="0.09"/>
+    <rect x="215" y="196" width="9" height="9" rx="1" opacity="0.11"/>
+    <rect x="225" y="196" width="9" height="9" rx="1" opacity="0.09"/>
+    <rect x="235" y="196" width="9" height="9" rx="1" opacity="0.05"/>
+    <rect x="245" y="196" width="9" height="9" rx="1" opacity="0.04"/>
+    <rect x="255" y="196" width="9" height="9" rx="1" opacity="0.07"/>
+  </g>
+
+  <!-- Axis labels -->
+  <text x="150" y="162" text-anchor="middle" writing-mode="tb"
+        font-family="'SF Mono','Fira Code','Consolas',monospace"
+        font-size="5" fill="#00c8a0" opacity="0.3">FREQ</text>
+  <text x="207" y="212" text-anchor="middle"
+        font-family="'SF Mono','Fira Code','Consolas',monospace"
+        font-size="5" fill="#00c8a0" opacity="0.3">TIME →</text>
+  <text x="264" y="212"
+        font-family="'SF Mono','Fira Code','Consolas',monospace"
+        font-size="5" fill="#00c8a0" opacity="0.3">13 coef.</text>
+
+  <!-- Flow arrow: MFCC → NN -->
+  <line x1="266" y1="162" x2="279" y2="162"
+        stroke="#00c8a0" stroke-width="1.2" opacity="0.65"
+        marker-end="url(#carr)"/>
+
+  <!-- ═══════════════════════════════════════════════════ -->
+  <!-- ZONE 3: TinyML INFERENCE  (x: 280–370)             -->
+  <!-- ═══════════════════════════════════════════════════ -->
+
+  <!-- Section label -->
+  <text x="325" y="47" text-anchor="middle"
+        font-family="'SF Mono','Fira Code','Consolas',monospace"
+        font-size="6.5" letter-spacing="1" fill="#00c8a0" opacity="0.45">TinyML</text>
+
+  <!-- NN connecting lines (behind nodes) -->
+  <g stroke="#00c8a0" stroke-width="0.5" fill="none" opacity="0.12">
+    <!-- input → hidden -->
+    <line x1="289" y1="110" x2="325" y2="120"/>
+    <line x1="289" y1="110" x2="325" y2="160"/>
+    <line x1="289" y1="110" x2="325" y2="200"/>
+    <line x1="289" y1="140" x2="325" y2="120"/>
+    <line x1="289" y1="140" x2="325" y2="160"/>
+    <line x1="289" y1="140" x2="325" y2="200"/>
+    <line x1="289" y1="170" x2="325" y2="120"/>
+    <line x1="289" y1="170" x2="325" y2="160"/>
+    <line x1="289" y1="170" x2="325" y2="200"/>
+    <line x1="289" y1="200" x2="325" y2="120"/>
+    <line x1="289" y1="200" x2="325" y2="160"/>
+    <line x1="289" y1="200" x2="325" y2="200"/>
+    <!-- hidden → output -->
+    <line x1="329" y1="120" x2="360" y2="120"/>
+    <line x1="329" y1="120" x2="360" y2="165"/>
+    <line x1="329" y1="120" x2="360" y2="210"/>
+    <line x1="329" y1="160" x2="360" y2="120"/>
+    <line x1="329" y1="160" x2="360" y2="165"/>
+    <line x1="329" y1="160" x2="360" y2="210"/>
+    <line x1="329" y1="200" x2="360" y2="120"/>
+    <line x1="329" y1="200" x2="360" y2="165"/>
+    <line x1="329" y1="200" x2="360" y2="210"/>
+  </g>
+  <!-- NN active connections (stronger opacity for "winning" path) -->
+  <g stroke="#00c8a0" stroke-width="0.8" fill="none" opacity="0.3">
+    <line x1="289" y1="140" x2="325" y2="160"/>
+    <line x1="289" y1="170" x2="325" y2="160"/>
+    <line x1="329" y1="160" x2="360" y2="165"/>
+  </g>
+
+  <!-- Input nodes (4) -->
+  <g fill="#00c8a0" opacity="0.5" filter="url(#cg)">
+    <circle cx="285" cy="110" r="4.5"/>
+    <circle cx="285" cy="140" r="4.5"/>
+    <circle cx="285" cy="170" r="4.5"/>
+    <circle cx="285" cy="200" r="4.5"/>
+  </g>
+  <!-- Hidden nodes (3) -->
+  <g fill="#00c8a0" opacity="0.7" filter="url(#cg)">
+    <circle cx="325" cy="120" r="5"/>
+    <circle cx="325" cy="160" r="5"/>
+    <circle cx="325" cy="200" r="5"/>
+  </g>
+  <!-- Output nodes (3, coloured by class) -->
+  <circle cx="362" cy="120" r="5.5" fill="#00c8a0" opacity="0.95" filter="url(#cg)"/>
+  <circle cx="362" cy="165" r="5.5" fill="#ff7040" opacity="0.95" filter="url(#cg)"/>
+  <circle cx="362" cy="210" r="5.5" fill="#4a8fbf" opacity="0.85" filter="url(#cg)"/>
+
+  <!-- "INT8 NN" micro-badge -->
+  <rect x="284" y="218" width="52" height="14" rx="7"
+        fill="#0a1e14" stroke="#00979D" stroke-width="0.7" opacity="0.7"/>
+  <text x="310" y="228" text-anchor="middle"
+        font-family="'SF Mono','Fira Code','Consolas',monospace"
+        font-size="6" fill="#00979D" opacity="0.8">INT8 NN</text>
+
+  <!-- Flow arrow: NN → output -->
+  <line x1="368" y1="165" x2="380" y2="165"
+        stroke="#00c8a0" stroke-width="1.2" opacity="0.65"
+        marker-end="url(#carr)"/>
+
+  <!-- ═══════════════════════════════════════════════════ -->
+  <!-- ZONE 4: CLASSIFICATION OUTPUT  (x: 382–575)        -->
+  <!-- ═══════════════════════════════════════════════════ -->
+
+  <!-- Section label -->
+  <text x="477" y="47" text-anchor="middle"
+        font-family="'SF Mono','Fira Code','Consolas',monospace"
+        font-size="6.5" letter-spacing="1" fill="#00c8a0" opacity="0.45">CLASSIFICATION</text>
+
+  <!-- ── PRESENCE row (y=120) ── -->
+  <circle cx="391" cy="120" r="5.5" fill="#00c8a0" opacity="0.95" filter="url(#cg)"/>
+  <text x="401" y="124" font-family="'SF Mono','Fira Code','Consolas',monospace"
+        font-size="7.5" fill="#00c8a0" opacity="0.9">PRESENCE</text>
+  <!-- confidence bar -->
+  <rect x="459" y="114" width="88" height="12" rx="6"
+        fill="#081820" stroke="#00c8a0" stroke-width="0.6" opacity="0.55"/>
+  <rect x="460" y="115" width="74" height="10" rx="5"
+        fill="url(#cbar)" opacity="0.8"/>
+  <text x="551" y="124" font-family="'SF Mono','Fira Code','Consolas',monospace"
+        font-size="6.5" fill="#00c8a0" opacity="0.7">86%</text>
+
+  <!-- ── ANOMALY row (y=165) ── -->
+  <circle cx="391" cy="165" r="5.5" fill="#ff7040" opacity="0.95" filter="url(#cg)"/>
+  <text x="401" y="169" font-family="'SF Mono','Fira Code','Consolas',monospace"
+        font-size="7.5" fill="#ff7040" opacity="0.85">ANOMALY</text>
+  <rect x="459" y="159" width="88" height="12" rx="6"
+        fill="#081820" stroke="#ff7040" stroke-width="0.6" opacity="0.45"/>
+  <rect x="460" y="160" width="12" height="10" rx="5"
+        fill="#ff7040" opacity="0.7"/>
+  <text x="551" y="169" font-family="'SF Mono','Fira Code','Consolas',monospace"
+        font-size="6.5" fill="#ff7040" opacity="0.6">9%</text>
+
+  <!-- ── MANUAL TRIGGER row (y=210) ── -->
+  <circle cx="391" cy="210" r="5.5" fill="#4a8fbf" opacity="0.85" filter="url(#cg)"/>
+  <text x="401" y="214" font-family="'SF Mono','Fira Code','Consolas',monospace"
+        font-size="7.5" fill="#4a8fbf" opacity="0.75">TRIGGER</text>
+  <rect x="459" y="204" width="88" height="12" rx="6"
+        fill="#081820" stroke="#4a8fbf" stroke-width="0.6" opacity="0.4"/>
+  <rect x="460" y="205" width="5"  height="10" rx="5"
+        fill="#4a8fbf" opacity="0.55"/>
+  <text x="551" y="214" font-family="'SF Mono','Fira Code','Consolas',monospace"
+        font-size="6.5" fill="#4a8fbf" opacity="0.5">4%</text>
+
+  <!-- ── IDLE row (y=255) ── -->
+  <circle cx="391" cy="255" r="4.5" fill="#2a4a5a" opacity="0.7"/>
+  <text x="401" y="258" font-family="'SF Mono','Fira Code','Consolas',monospace"
+        font-size="7.5" fill="#2a4a5a" opacity="0.6">IDLE</text>
+  <rect x="459" y="250" width="88" height="12" rx="6"
+        fill="#081820" stroke="#2a4a5a" stroke-width="0.6" opacity="0.3"/>
+  <rect x="460" y="251" width="2"  height="10" rx="5"
+        fill="#2a4a5a" opacity="0.5"/>
+  <text x="551" y="260" font-family="'SF Mono','Fira Code','Consolas',monospace"
+        font-size="6.5" fill="#2a4a5a" opacity="0.45">1%</text>
+
+  <!-- Wi-Fi dashboard pill (bottom-right of graphic zone) -->
+  <rect x="390" y="272" width="146" height="20" rx="10"
+        fill="#0a1e14" stroke="#00c8a0" stroke-width="0.8" opacity="0.65"/>
+  <!-- Wi-Fi icon -->
+  <g stroke="#00c8a0" fill="none" stroke-linecap="round" opacity="0.7">
+    <path d="M401,283 Q405,278 409,283" stroke-width="1.5"/>
+    <path d="M404,280 Q405,278 406,280" stroke-width="1.2"/>
+    <circle cx="405" cy="283" r="1.3" fill="#00c8a0" stroke="none"/>
+  </g>
+  <text x="465" y="286" text-anchor="middle"
+        font-family="'SF Mono','Fira Code','Consolas',monospace"
+        font-size="7" fill="#00c8a0" opacity="0.75">LOCAL DASHBOARD</text>
+
+  <!-- ═══════════════════════════════════════════════════ -->
+  <!-- PRIVACY BADGE (top-right)                          -->
+  <!-- ═══════════════════════════════════════════════════ -->
+
+  <!-- Shield outline -->
+  <path d="M545,54 L575,64 L575,90 Q575,108 545,116 Q515,108 515,90 L515,64 Z"
+        fill="#0a1e14" stroke="#00c8a0" stroke-width="1.2" opacity="0.75"/>
+  <!-- Lock body -->
+  <rect x="537" y="90" width="16" height="12" rx="2.5"
+        fill="#00c8a0" opacity="0.65"/>
+  <!-- Lock shackle -->
+  <path d="M540,90 L540,84 Q545,78 550,84 L550,90"
+        stroke="#00c8a0" stroke-width="2" fill="none" opacity="0.7"/>
+  <!-- "NO" text -->
+  <text x="545" y="74" text-anchor="middle"
+        font-family="'SF Mono','Fira Code','Consolas',monospace"
+        font-size="6" fill="#00c8a0" opacity="0.65">NO CLOUD</text>
+  <text x="545" y="110" text-anchor="middle"
+        font-family="'SF Mono','Fira Code','Consolas',monospace"
+        font-size="5.5" fill="#00c8a0" opacity="0.5">OFFLINE</text>
+
+  <!-- ═══════════════════════════════════════════════════ -->
+  <!-- BOTTOM TEXT ZONE                                    -->
+  <!-- ═══════════════════════════════════════════════════ -->
+
+  <!-- Separator line -->
+  <line x1="28" y1="302" x2="572" y2="302"
+        stroke="#00c8a0" stroke-width="0.5" opacity="0.2"/>
+
+  <!-- Contest line -->
+  <text x="300" y="320" text-anchor="middle"
+        font-family="'SF Mono','Fira Code','Consolas',monospace"
+        font-size="7" letter-spacing="3" fill="#00c8a0" opacity="0.35">
+    HACKSTER.IO  ·  INVENT THE FUTURE WITH ARDUINO
+  </text>
+
+  <!-- Main title -->
+  <text x="300" y="356" text-anchor="middle"
+        font-family="'SF Mono','Fira Code','Consolas',monospace"
+        font-size="25" font-weight="700" letter-spacing="0.5"
+        fill="#e6edf3" filter="url(#ctg)">🎙️ Edge AI Smart Security Hub 🛡️</text>
+
+  <!-- Subtitle -->
+  <text x="300" y="383" text-anchor="middle"
+        font-family="'SF Mono','Fira Code','Consolas',monospace"
+        font-size="11" letter-spacing="1.5"
+        fill="#00c8a0" opacity="0.8">
+    Arduino UNO Q  ·  INMP441 I²S  ·  TinyML  ·  Edge Impulse
+  </text>
+
+  <!-- Tech tag badges (5 tags, centered) -->
+  <!-- total width: 98+8+92+8+82+8+76+8+58 = 438 → start at (600-438)/2 = 81 -->
+  <rect x="81"  y="400" width="98" height="17" rx="8.5"
+        fill="#0a1e14" stroke="#00c8a0" stroke-width="0.8"/>
+  <text x="130" y="412" text-anchor="middle"
+        font-family="'SF Mono','Fira Code','Consolas',monospace"
+        font-size="7" fill="#00c8a0" opacity="0.85">PRIVACY-FIRST</text>
+
+  <rect x="187" y="400" width="92" height="17" rx="8.5"
+        fill="#0a1e14" stroke="#00c8a0" stroke-width="0.8"/>
+  <text x="233" y="412" text-anchor="middle"
+        font-family="'SF Mono','Fira Code','Consolas',monospace"
+        font-size="7" fill="#00c8a0" opacity="0.85">EDGE IMPULSE</text>
+
+  <rect x="287" y="400" width="82" height="17" rx="8.5"
+        fill="#0a1e14" stroke="#00c8a0" stroke-width="0.8"/>
+  <text x="328" y="412" text-anchor="middle"
+        font-family="'SF Mono','Fira Code','Consolas',monospace"
+        font-size="7" fill="#00c8a0" opacity="0.85">DUAL-CORE</text>
+
+  <rect x="377" y="400" width="76" height="17" rx="8.5"
+        fill="#0a1e14" stroke="#00c8a0" stroke-width="0.8"/>
+  <text x="415" y="412" text-anchor="middle"
+        font-family="'SF Mono','Fira Code','Consolas',monospace"
+        font-size="7" fill="#00c8a0" opacity="0.85">NO CLOUD</text>
+
+  <rect x="461" y="400" width="58" height="17" rx="8.5"
+        fill="#0a1e14" stroke="#00c8a0" stroke-width="0.8"/>
+  <text x="490" y="412" text-anchor="middle"
+        font-family="'SF Mono','Fira Code','Consolas',monospace"
+        font-size="7" fill="#00c8a0" opacity="0.85">MFCC</text>
+
+  <!-- Corner accent lines -->
+  <g stroke="#00c8a0" stroke-width="1.5" opacity="0.35">
+    <polyline points="20,10 10,10 10,30"/>
+    <polyline points="580,10 590,10 590,30"/>
+    <polyline points="20,440 10,440 10,420"/>
+    <polyline points="580,440 590,440 590,420"/>
+  </g>
+</svg>
