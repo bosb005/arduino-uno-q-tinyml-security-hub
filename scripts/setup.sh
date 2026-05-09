@@ -47,17 +47,17 @@ fi
 info "Updating arduino-cli core index..."
 arduino-cli core update-index
 
-RENESAS_CORE="arduino:renesas_uno"
-if arduino-cli core list | grep -q "$RENESAS_CORE"; then
-  success "Board core already installed: $RENESAS_CORE"
+ZEPHYR_CORE="arduino:zephyr"
+if arduino-cli core list | grep -q "$ZEPHYR_CORE"; then
+  success "Board core already installed: $ZEPHYR_CORE"
 else
-  info "Installing Arduino Renesas UNO board core (includes UNO Q)..."
-  arduino-cli core install "$RENESAS_CORE"
+  info "Installing Arduino Zephyr board core (includes UNO Q STM32)..."
+  arduino-cli core install "$ZEPHYR_CORE"
 fi
 
 echo
-info "Available Renesas UNO boards:"
-arduino-cli board listall | grep -i "renesas_uno" || warn "No boards found — check core installation"
+info "Available UNO Q boards:"
+arduino-cli board listall | grep -i "unoq" || warn "No boards found — check core installation"
 
 # ── 5. deploy.env setup ──────────────────────────────────────
 echo
