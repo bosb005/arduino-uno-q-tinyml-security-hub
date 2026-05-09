@@ -44,7 +44,7 @@ load_config() {
   DEVICE_DASH_PATH="${DEVICE_DASH_PATH:-/home/user/dashboard}"
   SERVICE_NAME="${SERVICE_NAME:-security_hub}"
   ARDUINO_PORT="${ARDUINO_PORT:-auto}"
-  ARDUINO_FQBN="${ARDUINO_FQBN:-arduino:renesas_uno:unoq}"
+  ARDUINO_FQBN="${ARDUINO_FQBN:-arduino:zephyr:unoq}"
   SKETCH_DIR="${SKETCH_DIR:-app/sketch}"
   MONITOR_BAUD="${MONITOR_BAUD:-115200}"
   SSH_KEY="${SSH_KEY:-}"
