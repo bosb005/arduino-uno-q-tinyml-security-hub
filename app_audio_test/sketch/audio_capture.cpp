@@ -6,11 +6,11 @@
 //   D8  → SD   (serial data input from mic)
 //
 // Protocol: Philips I2S, 24-bit in 32-bit frame.
-// The STM32U585 arduino:zephyr platform compiles sketches as LLEXT extensions
-// against a pre-built kernel — hardware I2S (SAI) is not enabled in that
-// kernel, so we bit-bang from user space.  The actual sample rate is determined
-// by GPIO toggle speed (typically 3–8 kHz on this platform) and is measured at
-// runtime and reported back to Python so the WAV header is accurate.
+// The Arduino UNO Q (Renesas RA4M1) uses bit-banging for I2S—hardware I2S
+// is exposed but GPIO bit-bang is simpler for this application. The actual
+// sample rate is determined by GPIO toggle speed (typically 3–8 kHz on this
+// platform) and is measured at runtime and reported back to Python so the
+// WAV header is accurate.
 
 #include "audio_capture.h"
 #include <Arduino.h>
