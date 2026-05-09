@@ -1,5 +1,9 @@
 #!/bin/bash
 # Health check script — Quick system connectivity validation
+# 
+# IMPORTANT: Dashboard runs on PORT 7000 (not 5000!)
+# - 7000: Arduino app-cli dashboard
+# - 5000: (not used in this project)
 set -euo pipefail
 
 GREEN='\033[0;32m'; RED='\033[0;31m'; YELLOW='\033[1;33m'; NC='\033[0m'
@@ -25,7 +29,8 @@ check_ssh() {
 }
 
 check_dashboard() {
-  ssh -o ConnectTimeout=5 -o BatchMode=yes ${SSH_KEY:+-i "$SSH_KEY"} "${DEVICE_USER}@${DEVICE_IP}" "curl -sf http://localhost:5000/api/state >/dev/null" >/dev/null 2>&1 && { checks+=("DASHBOARD_OK"); ((pass++)); } || { checks+=("DASHBOARD_FAIL"); ((fail++)); }
+  # Dashboard runs on PORT 7000 (not 5000!)
+  ssh -o ConnectTimeout=5 -o BatchMode=yes ${SSH_KEY:+-i "$SSH_KEY"} "${DEVICE_USER}@${DEVICE_IP}" "curl -sf http://localhost:7000/health >/dev/null" >/dev/null 2>&1 && { checks+=("DASHBOARD_OK"); ((pass++)); } || { checks+=("DASHBOARD_FAIL"); ((fail++)); }
 }
 
 check_usb; check_ssh; check_dashboard
