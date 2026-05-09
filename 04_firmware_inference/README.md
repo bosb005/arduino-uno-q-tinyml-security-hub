@@ -88,4 +88,4 @@ Tuning guidance:
 
 ## 7) Latency expectation
 
-Target inference latency is **under 200 ms per 1024-sample frame** on the RA4M1-based UNO Q. Actual latency depends on the exported model size, DSP block settings, and board core version.
+Target inference latency is **under 200 ms per 1024-sample frame** on the STM32-based UNO Q. Actual latency depends on the exported model size, DSP block settings, and board core version.

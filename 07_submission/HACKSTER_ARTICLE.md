@@ -22,7 +22,7 @@
 Most consumer security products default to the cloud: cameras upload footage, smart speakers stream audio, and event detection often depends on remote servers. That creates a privacy problem, especially for always-on sensors in bedrooms, hallways, and living spaces. It also creates a reliability problem: if the network drops or a cloud API changes, the system becomes less useful exactly when it matters most. For a simple home security node, sending raw audio away is overkill. I wanted a local-first design that reacts to important sounds, keeps private data on the device, and still gives users a clean real-time interface.
 
 ### The Solution
-Edge AI Smart Security Hub pushes the entire detection pipeline onto the Arduino UNO Q. An INMP441 digital microphone feeds 16 kHz mono audio into the Renesas RA4M1 MCU, where a TinyML model built with Edge Impulse extracts MFCC features and classifies acoustic events locally. Only compact event messages are forwarded over UART to the Linux side of the board, which hosts a Flask dashboard over Wi-Fi for live monitoring.
+Edge AI Smart Security Hub pushes the entire detection pipeline onto the Arduino UNO Q. An INMP441 digital microphone feeds 16 kHz mono audio into the STM32 MCU, where a TinyML model built with Edge Impulse extracts MFCC features and classifies acoustic events locally. Only compact event messages are forwarded over UART to the Linux side of the board, which hosts a Flask dashboard over Wi-Fi for live monitoring.
 
 This split makes the UNO Q especially compelling: the MCU handles deterministic real-time audio capture and inference, while Linux handles networking and the browser UI. Arduino App Lab fits naturally into this workflow because it can be used to manage the dual-core setup, deploy and test the embedded application, host the dashboard, and manage connectivity during iteration. No raw audio is streamed to the cloud, and the system still feels connected and interactive. In its current form, this is a prototype security node designed to prove the architecture, validate the user experience, and show that privacy-first acoustic monitoring can be practical on low-cost embedded hardware.
 
@@ -48,7 +48,7 @@ Full wiring details are documented in [`01_hardware_setup/WIRING.md`](../01_hard
 INMP441 mic
    │  I2S (16 kHz mono)
    ▼
-Arduino UNO Q MCU (Renesas RA4M1)
+Arduino UNO Q MCU (STM32)
    │  ping-pong audio buffer via I2S backend
    ▼
 Edge Impulse DSP

@@ -2,7 +2,7 @@
 
 ## Context
 
-Board: Arduino UNO Q (dual-core: RA4M1 MCU + Linux module)
+Board: Arduino UNO Q (dual-core: STM32 MCU + Linux module)
 Hardware docs: https://docs.arduino.cc/tutorials/uno-q/user-manual/
 Microphone: INMP441 (digital I2S MEMS microphone)
 Adapter: QWIIC breakout adapter with I2S header (note: the electrical interface is I2S, not QWIIC protocol)

@@ -3,7 +3,7 @@
 ## Context
 
 Platform: Edge Impulse (https://edgeimpulse.com)
-Target device: Arduino UNO Q (Renesas RA4M1 MCU)
+Target device: Arduino UNO Q (STM32 MCU)
 Audio input: 16 kHz mono from INMP441
 Goal: Classify acoustic events into 4 classes: `presence`, `anomaly`, `manual_trigger`, `idle`
 

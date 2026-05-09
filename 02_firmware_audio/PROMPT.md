@@ -2,7 +2,7 @@
 
 ## Context
 
-Board: Arduino UNO Q (MCU core: Renesas RA4M1)
+Board: Arduino UNO Q (MCU core: STM32)
 IDE: Arduino IDE / Arduino App Lab
 Microphone: INMP441 via I2S
 Target: 16 kHz, mono, continuous capture into a circular buffer
@@ -26,7 +26,7 @@ Implement MCU-side Arduino firmware for audio capture. Deliverables:
 
 ### 2. `README.md`
 - How to configure the I2S peripheral in Arduino IDE for UNO Q
-- Required Arduino libraries (e.g., ArduinoSound, PDM, or Renesas HAL)
+- Required Arduino libraries (e.g., ArduinoSound, PDM, or STM32 HAL)
 - How to verify audio capture works (e.g., print peak amplitude to Serial)
 
 ## Notes

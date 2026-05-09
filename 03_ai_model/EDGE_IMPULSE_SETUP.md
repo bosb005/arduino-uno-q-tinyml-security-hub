@@ -9,7 +9,7 @@ This guide walks you through creating, training, validating, quantizing, and exp
 | Platform | Edge Impulse |
 | Project name | `security-hub-acoustic` |
 | Target device | Arduino UNO Q |
-| Microcontroller | Renesas RA4M1 |
+| Microcontroller | STM32 |
 | Audio input | INMP441 microphone |
 | Sample rate | 16 kHz mono |
 | Classes | `presence`, `anomaly`, `manual_trigger`, `idle` |
@@ -138,7 +138,7 @@ Input (MFCC features: ~1170 values for 1 s window)
 
 ### Why this architecture fits the Arduino UNO Q
 
-- It is small enough to have a good chance of fitting on the RA4M1.
+- It is small enough to have a good chance of fitting on the STM32 MCU.
 - It is simple to debug and retrain.
 - It is a strong baseline for four-class acoustic classification.
 

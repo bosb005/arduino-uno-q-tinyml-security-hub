@@ -2,7 +2,7 @@
 
 ## Context
 
-Board: Arduino UNO Q (MCU core: Renesas RA4M1)
+Board: Arduino UNO Q (MCU core: STM32)
 Dependencies:
 - Audio buffer API from `../02_firmware_audio/` (`audio_ready()`, `audio_get_frame()`)
 - Edge Impulse exported Arduino library (ZIP from `../03_ai_model/`)

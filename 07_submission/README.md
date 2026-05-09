@@ -34,7 +34,7 @@ Open http://<board-ip>:5000
 ## Architecture
 
 ```text
-INMP441 ──I2S──► MCU (RA4M1)
+INMP441 ──I2S──► MCU (STM32)
                   │ DMA Buffer
                   ▼
             Edge Impulse MFCC
