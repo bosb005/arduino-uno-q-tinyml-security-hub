@@ -8,6 +8,8 @@
 #   firmware    Compile and flash MCU sketch via USB
 #   dashboard   Sync dashboard to device, restart service
 #   all         firmware + dashboard
+#   test        Health check + audio capture validation
+#   cycle       Full deploy + test loop
 #   monitor     Open serial monitor (MCU debug output)
 #   logs        Tail dashboard service logs (SSH)
 #   status      Show device ping + service status
@@ -59,6 +61,9 @@ ensure_ei_library() {
     die "EI library ZIP not found: $zip — run: bash scripts/ei_workflow.sh --step export"
   fi
 
+  local has_inferencing_header
+  has_inferencing_header=$(unzip -l "$zip" 2>/dev/null | awk '{print $NF}' | grep -E '_inferencing\.h$' | head -1 || true)
+
   # Get the top-level library folder name from the ZIP
   local lib_name
   lib_name=$(unzip -l "$zip" 2>/dev/null | awk '{print $NF}' | grep '/$' | head -1 | tr -d '/')
@@ -74,6 +79,17 @@ ensure_ei_library() {
     lib_path="$HOME/Documents/Arduino"
   fi
   local lib_dir="$lib_path/libraries/$lib_name"
+
+  if [ -z "$has_inferencing_header" ]; then
+    warn "EI ZIP looks incomplete (no *_inferencing.h): $zip"
+    local installed_header
+    installed_header=$(find "$lib_path/libraries" -maxdepth 3 -type f -name '*_inferencing.h' 2>/dev/null | head -1 || true)
+    if [ -n "$installed_header" ]; then
+      success "Using already installed EI library header: $(basename "$installed_header")"
+      return 0
+    fi
+    die "No installed Edge Impulse *_inferencing.h found. Re-export model ZIP via scripts/ei_workflow.sh."
+  fi
 
   if [ -d "$lib_dir" ]; then
     success "EI library already installed: $lib_name"
@@ -134,8 +150,9 @@ app_cli_url() { echo "http://${DEVICE_IP}:${APP_CLI_PORT}"; }
 
 # The app ID is base64 of "user:{name-lowercased-dashes}".
 app_id() {
+  local name="${1:-$APP_NAME}"
   local folder
-  folder=$(echo "$APP_NAME" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
+  folder=$(echo "$name" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
   echo -n "user:$folder" | base64
 }
 
@@ -215,6 +232,8 @@ for p in json.load(sys.stdin).get('detected_ports',[]):
     -f "$variant_dir/flash_sketch.cfg" \
     "$firmware"
   success "Upload complete"
+  info "Waiting for MCU/router to settle..."
+  sleep 10
 
   # After flashing the MCU reboots and handshakes with the already-running router.
   # Re-register the Python app's Bridge.provide() binding against the current router.
@@ -238,15 +257,13 @@ for p in json.load(sys.stdin).get('detected_ports',[]):
 cmd_app() {
   local app_dir="${1:-$SCRIPT_DIR/app}"
   local app_name_override="${2:-}"
+  local target_app_name="${app_name_override:-$APP_NAME}"
 
   check_prereqs curl zip
   check_device_ip
 
   [ -d "$app_dir" ] || die "app directory not found at $app_dir"
   [ -f "$app_dir/app.yaml" ] || die "app.yaml not found in $app_dir"
-
-  # Allow caller to override APP_NAME for this invocation
-  [ -n "$app_name_override" ] && APP_NAME="$app_name_override"
 
   step "Packaging app"
   local tmp_zip="/tmp/security-hub-$$.zip"
@@ -262,8 +279,8 @@ cmd_app() {
   info "Packaged: $tmp_zip ($(du -sh "$tmp_zip" | cut -f1))"
 
   step "Uploading app to device"
-  # The app ID is derived from the zip filename — use APP_NAME so ID matches our app_id() function
-  local remote_zip="/tmp/${APP_NAME}.zip"
+  # The app ID is derived from the zip filename — keep it aligned with target_app_name.
+  local remote_zip="/tmp/${target_app_name}.zip"
   # SCP the zip to the device, then import via SSH curl (API only listens on localhost)
   # shellcheck disable=SC2046
   scp $(ssh_args) "$tmp_zip" "${DEVICE_USER}@${DEVICE_IP}:${remote_zip}"
@@ -276,7 +293,7 @@ cmd_app() {
 import json, sys, subprocess
 apps = json.load(sys.stdin).get('apps', [])
 for a in apps:
-    if '${APP_NAME}' in a['name'].lower() and not a.get('example'):
+    if '${target_app_name}' in a['name'].lower() and not a.get('example'):
         if a.get('status') == 'running':
             subprocess.run(['curl','-sf','-X','POST','http://localhost:${APP_CLI_PORT}/v1/apps/'+a['id']+'/stop'], capture_output=True)
         subprocess.run(['curl','-sf','-X','DELETE','http://localhost:${APP_CLI_PORT}/v1/apps/'+a['id']], capture_output=True)
@@ -294,7 +311,26 @@ for a in apps:
   # ID is returned in response; fall back to computed app_id
   local id
   id=$(echo "$response" | grep -o '"id":"[^"]*"' | cut -d'"' -f4 || echo "")
-  [ -z "$id" ] && id=$(app_id)
+  [ -z "$id" ] && id=$(app_id "$target_app_name")
+
+  # App Lab runs one user app at a time. Stop any other running user app first,
+  # otherwise the start stream can return INTERNAL_SERVER_ERROR.
+  run_ssh "
+    curl -sf 'http://localhost:${APP_CLI_PORT}/v1/apps' | \
+    python3 -c \"
+import json, sys, subprocess
+target='${id}'
+apps=json.load(sys.stdin).get('apps', [])
+for a in apps:
+    if a.get('example'):
+        continue
+    if a.get('status') == 'running' and a.get('id') != target:
+        subprocess.run(
+            ['curl','-sf','-X','POST','http://localhost:${APP_CLI_PORT}/v1/apps/'+a['id']+'/stop'],
+            capture_output=True
+        )
+        print('Stopped running app:', a['name'], a['id'])
+\"" 2>/dev/null || true
 
   step "Starting app"
   info "App ID: $id"
@@ -350,18 +386,125 @@ cmd_app_list() {
 cmd_audio_test() {
   step "Deploying audio capture test app"
   warn "This replaces the running app. Restore with: ./deploy.sh app"
+  step "Restarting arduino-router before audio-test start"
+  run_ssh "echo 'arduino' | sudo -S systemctl restart arduino-router 2>/dev/null; \
+    for i in \$(seq 1 20); do \
+      [ -S /var/run/arduino-router.sock ] && curl -sf 'http://localhost:${APP_CLI_PORT}/v1/apps' >/dev/null 2>&1 && exit 0; \
+      sleep 1; \
+    done; \
+    exit 1" \
+    && success "Router ready" || warn "Router not ready yet — attempting app deploy anyway"
   cmd_app "$SCRIPT_DIR/app_audio_test" "audio-test"
-  # After every deploy the arduino-router handshake state resets;
-  # restart the router + app to re-establish the Bridge connection.
-  step "Restarting arduino-router to fix Bridge handshake"
-  run_ssh "echo 'arduino' | sudo -S systemctl restart arduino-router 2>/dev/null; sleep 5; \
-    curl -sf -X POST 'http://localhost:${APP_CLI_PORT}/v1/apps/dXNlcjphdWRpby10ZXN0/stop' >/dev/null 2>&1; \
-    sleep 2; \
-    curl -sf -X POST 'http://localhost:${APP_CLI_PORT}/v1/apps/dXNlcjphdWRpby10ZXN0/start' --max-time 60 >/dev/null 2>&1" \
-    && success "Bridge restarted" || warn "Bridge restart failed — run: ./deploy.sh audio-bridge-fix"
   info "Watch logs with: ./deploy.sh audio-logs"
   info "When done, copy WAV: scp arduino@\${DEVICE_IP}:/home/arduino/ArduinoApps/audio-test/test.wav ./"
   info "Restore main app:   ./deploy.sh app"
+}
+
+cmd_audio_test_firmware() {
+  check_prereqs arduino-cli
+  ensure_ei_library
+
+  local port
+  port=$(resolve_port)
+
+  step "Restarting arduino-router before audio-test flash"
+  run_ssh "echo 'arduino' | sudo -S systemctl restart arduino-router 2>/dev/null; sleep 3; \
+    systemctl is-active arduino-router" \
+    && success "Router ready" || warn "Router restart failed — continuing anyway"
+
+  local build_path="/tmp/arduino-build-audio-test"
+  mkdir -p "$build_path"
+
+  step "Compiling audio-test firmware"
+  info "Sketch : app_audio_test/sketch"
+  info "FQBN   : $ARDUINO_FQBN"
+  arduino-cli compile \
+    --fqbn "$ARDUINO_FQBN" \
+    --build-path "$build_path" \
+    --clean \
+    "$SCRIPT_DIR/app_audio_test/sketch"
+  success "Compilation OK"
+
+  step "Uploading audio-test firmware"
+  info "Port: $port"
+  local serial_no
+  serial_no=$(arduino-cli board list --format json 2>/dev/null \
+    | python3 -c "
+import json,sys
+for p in json.load(sys.stdin).get('detected_ports', []):
+    if p['port']['address'] == '$port':
+        print(p['port'].get('properties', {}).get('serialNumber', ''))
+        break
+" 2>/dev/null || true)
+
+  [ -n "$serial_no" ] || die "Could not read USB serial number for $port. Is the board plugged in?"
+
+  local remoteocd
+  remoteocd=$(ls ~/Library/Arduino15/packages/arduino/tools/remoteocd/*/remoteocd 2>/dev/null | head -1)
+  local adb_path
+  adb_path=$(dirname "$(ls ~/Library/Arduino15/packages/arduino/tools/adb/*/adb 2>/dev/null | head -1)")
+  local variant_dir="$HOME/Library/Arduino15/packages/arduino/hardware/zephyr/0.55.0/variants/arduino_uno_q_stm32u585xx"
+  local firmware="$build_path/sketch.ino.elf-zsk.bin"
+
+  info "Serial: $serial_no"
+  "$remoteocd" upload \
+    --adb-path "$adb_path/adb" \
+    -s "$serial_no" \
+    -f "$variant_dir/flash_sketch.cfg" \
+    "$firmware"
+  success "Audio-test firmware uploaded"
+  info "Waiting for MCU/router to settle..."
+  sleep 10
+}
+
+cmd_bridge_test() {
+  step "Bridge isolation test"
+  info "Stopping security-hub container directly"
+  run_ssh "docker stop security-hub-main-1 >/dev/null 2>&1 || true"
+  info "Waiting for security-hub app container to stop"
+  for _ in $(seq 1 12); do
+    if ! run_ssh "docker ps --format '{{.Names}}' | grep -qx 'security-hub-main-1'" >/dev/null 2>&1; then
+      break
+    fi
+    sleep 5
+  done
+  cmd_audio_test
+  step "Resetting MCU path with audio-test app already running"
+  cmd_audio_test_firmware
+  run_ssh "curl -sf -X POST 'http://localhost:${APP_CLI_PORT}/v1/apps/dXNlcjphdWRpby10ZXN0/stop' >/dev/null 2>&1; \
+    sleep 2; \
+    curl -sf -X POST 'http://localhost:${APP_CLI_PORT}/v1/apps/dXNlcjphdWRpby10ZXN0/start' --max-time 60 >/dev/null 2>&1" \
+    && success "Audio-test app restarted after firmware flash" || warn "Audio-test restart failed"
+
+  local wav_path="/home/arduino/ArduinoApps/audio-test/test.wav"
+  info "Waiting for bridge WAV: $wav_path"
+  if wait_for_remote_file "$wav_path" 150; then
+    local wav_size
+    wav_size=$(run_ssh "stat -c '%s' '$wav_path'" | tr -d '\r' || true)
+    [ -n "$wav_size" ] || die "Bridge test WAV size could not be read"
+    success "Bridge test produced test.wav (${wav_size} bytes)"
+  else
+    die "Bridge test did not produce $wav_path"
+  fi
+
+  step "Restoring main deployment (firmware + app)"
+  cmd_all
+}
+
+wait_for_remote_file() {
+  local path="$1"
+  local timeout="${2:-120}"
+  local interval=5
+  local deadline=$((SECONDS + timeout))
+
+  while [ "$SECONDS" -lt "$deadline" ]; do
+    if run_ssh "test -s '$path'" >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep "$interval"
+  done
+
+  return 1
 }
 
 cmd_audio_bridge_fix() {
@@ -417,6 +560,46 @@ cmd_dashboard() {
 cmd_all() {
   cmd_firmware
   cmd_app
+}
+
+cmd_test() {
+  check_prereqs ssh curl
+  check_device_ip
+
+  step "Pre-flight health check"
+  local pre_ok="no"
+  for _ in $(seq 1 10); do
+    if "$SCRIPT_DIR"/scripts/health-check.sh --json; then
+      pre_ok="yes"
+      break
+    fi
+    sleep 2
+  done
+  [ "$pre_ok" = "yes" ] || die "Pre-flight health check failed"
+
+  step "Bridge transport test"
+  cmd_bridge_test
+
+  step "Live dashboard event check"
+  local got_event="no"
+  for _ in $(seq 1 15); do
+    if curl -sf "http://${DEVICE_IP}:7000/state" 2>/dev/null | grep -q '"last_updated":"[^"]'; then
+      got_event="yes"
+      break
+    fi
+    sleep 2
+  done
+  [ "$got_event" = "yes" ] || die "No live event observed on /state after restore"
+
+  step "Post-test health check"
+  "$SCRIPT_DIR"/scripts/health-check.sh --json
+  success "Device test cycle complete"
+}
+
+cmd_cycle() {
+  step "Deploying full app cycle"
+  cmd_all
+  cmd_test
 }
 
 cmd_monitor() {
@@ -543,10 +726,13 @@ cmd_help() {
   echo -e "  ${CYAN}app-list${NC}            List all apps on device (app-cli)"
   echo -e "  ${CYAN}audio-test${NC}          Deploy mic test app → records 5s WAV to /home/arduino/ArduinoApps/audio-test/test.wav"
   echo -e "  ${CYAN}audio-logs${NC}          Stream audio-test app logs"
+  echo -e "  ${CYAN}bridge-test${NC}         Flash audio-test firmware + app → verify WAV bridge path"
   echo
   echo -e "${BOLD}MCU firmware:${NC}"
   echo -e "  ${CYAN}firmware${NC}            Compile + flash MCU sketch via USB (arduino-cli)"
   echo -e "  ${CYAN}all${NC}                 firmware + app"
+  echo -e "  ${CYAN}test${NC}                health check + audio capture validation"
+  echo -e "  ${CYAN}cycle${NC}               full deploy + test loop"
   echo -e "  ${CYAN}monitor${NC}             Open arduino-cli serial monitor"
   echo
   echo -e "${BOLD}Dev tools:${NC}"
@@ -590,10 +776,13 @@ case "$CMD" in
   app-list)   cmd_app_list  ;;
   audio-test) cmd_audio_test ;;
   audio-logs) cmd_audio_logs ;;
+  bridge-test) cmd_bridge_test ;;
   audio-bridge-fix) cmd_audio_bridge_fix ;;
   firmware)   cmd_firmware  ;;
   dashboard)  cmd_dashboard ;;
   all)        cmd_all       ;;
+  test)       cmd_test      ;;
+  cycle)      cmd_cycle     ;;
   monitor)    cmd_monitor   ;;
   logs)       cmd_logs      ;;
   status)     cmd_status    ;;

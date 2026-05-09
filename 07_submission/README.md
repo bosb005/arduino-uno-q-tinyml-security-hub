@@ -29,7 +29,20 @@ cd ../05_linux_dashboard
 pip3 install -r requirements.txt
 python3 app.py
 ```
-Open http://<board-ip>:5000
+Open http://<board-ip>:7000
+
+For the full device flow, use `bash scripts/cycle.sh` from the repository root.
+
+## Automated deploy/test cycle (repo root)
+
+```bash
+./deploy.sh all         # flash main firmware + deploy app
+./deploy.sh test        # bridge transport test + restore main firmware/app + health checks
+./deploy.sh cycle       # full deploy + test in one command
+./deploy.sh bridge-test # isolated Bridge WAV test (auto-restores main deployment)
+```
+
+Dashboard/API endpoint: `http://<board-ip>:7000`
 
 ## Architecture
 

@@ -14,6 +14,7 @@
 #define TOTAL_CHUNKS      (RECORD_SAMPLES / CHUNK_SAMPLES)
 #define TX_DELAY_MS        150u
 #define WAIT_READY_MS     5000UL
+#define REPEAT_DELAY_MS  10000UL
 
 static int16_t s_buf[RECORD_SAMPLES];
 static char    s_hex[CHUNK_SAMPLES * 4u + 1u];
@@ -54,6 +55,7 @@ static unsigned      s_pos      = 0;
 static unsigned      s_chunk_tx = 0;
 static unsigned long s_last_tx  = 0;
 static unsigned long s_last_disp = 0;
+static unsigned long s_next_record_ms = WAIT_READY_MS;
 
 void setup() {
   matrix.begin();
@@ -65,7 +67,7 @@ void loop() {
   switch (s_state) {
 
     case ST_WAIT:
-      if (millis() >= WAIT_READY_MS) {
+      if (millis() >= s_next_record_ms) {
         Bridge.notify("audio_status", "noise", (int)TOTAL_CHUNKS, 0);
         s_pos   = 0;
         s_state = ST_RECORD;
@@ -102,7 +104,8 @@ void loop() {
 
       if (s_chunk_tx >= TOTAL_CHUNKS) {
         Bridge.notify("audio_status", "done", (int)TOTAL_CHUNKS, g_actual_sample_rate);
-        s_state     = ST_VU;   // WAV sent — never record again
+        s_state     = ST_VU;
+        s_next_record_ms = millis() + REPEAT_DELAY_MS;
         s_last_disp = 0;
       }
       break;
@@ -115,6 +118,11 @@ void loop() {
         s_last_disp = now;
         push_level(audio_read_level(64));
         draw_vu();
+      }
+      if (now >= s_next_record_ms) {
+        Bridge.notify("audio_status", "noise", (int)TOTAL_CHUNKS, 0);
+        s_pos = 0;
+        s_state = ST_RECORD;
       }
       break;
     }

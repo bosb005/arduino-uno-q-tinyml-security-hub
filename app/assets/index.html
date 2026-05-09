@@ -10,7 +10,7 @@
     :root {
       --bg: #0d1117; --surface: #161b22; --border: #30363d;
       --text: #e6edf3; --muted: #8b949e; --accent: #58a6ff;
-      --idle: #3fb950; --presence: #d29922; --anomaly: #f85149; --trigger: #bc8cff;
+      --idle: #3fb950; --presence: #d29922; --anomaly: #f85149; --trigger: #bc8cff; --error: #ff7b72;
     }
     body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; }
     header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 1rem 1.5rem; display: flex; align-items: center; gap: .75rem; }
@@ -30,6 +30,7 @@
     #event-badge.anomaly   { color: var(--anomaly);   border-color: var(--anomaly); }
     #event-badge.manual_trigger { color: var(--trigger); border-color: var(--trigger); }
     #event-badge.idle      { color: var(--idle);      border-color: var(--idle); }
+    #event-badge.error     { color: var(--error);     border-color: var(--error); }
     .meta-row { display: flex; gap: 2rem; margin-top: .75rem; font-size: .9rem; color: var(--muted); }
     .meta-row span b { color: var(--text); }
     #conf-bar-wrap { background: #21262d; border-radius: 4px; height: 8px; margin-top: .5rem; overflow: hidden; }
@@ -45,6 +46,7 @@
     #history-list li .ev.anomaly     { color: var(--anomaly); }
     #history-list li .ev.manual_trigger { color: var(--trigger); }
     #history-list li .ev.idle        { color: var(--idle); }
+    #history-list li .ev.error       { color: var(--error); }
     .tag-mock { background: #5a3825; color: #ffa657; font-size: .7rem; padding: .15rem .5rem; border-radius: 3px; margin-left: .5rem; vertical-align: middle; }
   </style>
 </head>

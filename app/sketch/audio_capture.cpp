@@ -18,6 +18,8 @@
 static int16_t  s_frame[AUDIO_FRAME_SAMPLES];
 static bool     s_frame_ready  = false;
 static bool     s_initialized  = false;
+static int      s_capture_pos  = 0;
+static unsigned long s_capture_t0_us = 0;
 
 // Actual sample rate measured during the first frame capture.
 // Exposed so sketch.ino can include it in the Bridge "done" notification.
@@ -101,12 +103,47 @@ bool audio_ready() {
     return true;
 }
 
+void audio_start_frame_capture() {
+    if (!s_initialized) return;
+    s_frame_ready = false;
+    s_capture_pos = 0;
+    s_capture_t0_us = micros();
+}
+
+bool audio_capture_frame_step(int max_samples) {
+    if (!s_initialized) return false;
+    if (s_frame_ready) return true;
+    if (max_samples <= 0) return false;
+
+    if (s_capture_pos == 0 && s_capture_t0_us == 0) {
+        s_capture_t0_us = micros();
+    }
+
+    int remaining = AUDIO_FRAME_SAMPLES - s_capture_pos;
+    int n = (max_samples < remaining) ? max_samples : remaining;
+    audio_capture_chunk(&s_frame[s_capture_pos], n);
+    s_capture_pos += n;
+
+    if (s_capture_pos >= AUDIO_FRAME_SAMPLES) {
+        unsigned long elapsed_us = micros() - s_capture_t0_us;
+        if (elapsed_us > 0) {
+            g_actual_sample_rate =
+                static_cast<int>((long)AUDIO_FRAME_SAMPLES * 1000000L / elapsed_us);
+        }
+        s_frame_ready = true;
+    }
+
+    return s_frame_ready;
+}
+
 int16_t* audio_get_frame() {
     return s_frame_ready ? s_frame : nullptr;
 }
 
 void audio_clear_ready() {
     s_frame_ready = false;
+    s_capture_pos = 0;
+    s_capture_t0_us = 0;
 }
 
 void audio_capture_chunk(int16_t* buf, int n) {

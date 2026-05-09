@@ -276,24 +276,49 @@ if not d.get('success'):
     sys.exit(1)
 print(d.get('id',''))
 ")
+  DEPLOYMENT_VERSION=$(echo "$BUILD" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+print(d.get('deploymentVersion',''))
+")
+  if [[ -z "$DEPLOYMENT_VERSION" ]]; then
+    echo "✗ Build response did not include deploymentVersion"
+    exit 1
+  fi
   echo "✓ Build job started: $BUILD_JOB"
-  _wait_for_job "$BUILD_JOB"
-  echo "✓ Build complete!"
+  echo "✓ Deployment version: $DEPLOYMENT_VERSION"
 
-  # Step 2: download the ZIP
+  # Step 2: poll until historic deployment download is ready (returns HTTP 200).
   echo "Downloading Arduino library ZIP for project $PROJECT_ID..."
-  curl -fSL \
-    -H "x-api-key: $API_KEY" \
-    "$EI_BASE/$PROJECT_ID/deployment/download?type=arduino&engine=tflite-eon&impulseId=1" \
-    -o "$EXPORT_DIR/$ZIP_NAME"
+  local download_url="$EI_BASE/$PROJECT_ID/deployment/history/$DEPLOYMENT_VERSION/download"
+  local got_zip="no"
+  for _ in $(seq 1 30); do
+    code=$(curl -s -o "$EXPORT_DIR/$ZIP_NAME" -w '%{http_code}' \
+      -H "x-api-key: $API_KEY" "$download_url")
+    if [[ "$code" == "200" ]]; then
+      got_zip="yes"
+      break
+    fi
+    sleep 10
+  done
+  if [[ "$got_zip" != "yes" ]]; then
+    echo "✗ Deployment artifact not ready from $download_url"
+    exit 1
+  fi
 
   # Also copy to firmware folder for reference
   cp "$EXPORT_DIR/$ZIP_NAME" "$FIRMWARE_DIR/$ZIP_NAME"
 
   # Print actual library name from ZIP
   LIB_NAME=$(unzip -l "$EXPORT_DIR/$ZIP_NAME" 2>/dev/null | grep "/$" | head -1 | awk '{print $NF}' | tr -d '/')
+  EI_HEADER=$(unzip -l "$EXPORT_DIR/$ZIP_NAME" 2>/dev/null | awk '{print $NF}' | grep -E '_inferencing\.h$' | head -1 || true)
+  if [[ -z "$EI_HEADER" ]]; then
+    echo "✗ Exported ZIP does not contain *_inferencing.h (got placeholder package)."
+    exit 1
+  fi
   echo "✓ Saved to $EXPORT_DIR/$ZIP_NAME"
   echo "✓ Copied to $FIRMWARE_DIR/$ZIP_NAME"
+  echo "✓ Inference header: $(basename "$EI_HEADER")"
   echo ""
   echo "Library name inside ZIP: $LIB_NAME"
   echo ""

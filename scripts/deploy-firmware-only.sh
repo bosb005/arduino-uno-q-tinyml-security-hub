@@ -79,7 +79,6 @@ echo -e "${BOLD}╚════════════════════�
 check_tool arduino-cli
 ensure_ei_library
 
-local port
 port=$(resolve_port)
 
 step "Compiling firmware"
@@ -87,7 +86,7 @@ info "Sketch: $SKETCH_DIR"
 info "FQBN:   $ARDUINO_FQBN"
 info "Port:   $port"
 
-local build_path="/tmp/arduino-build-unoq"
+build_path="/tmp/arduino-build-unoq"
 mkdir -p "$build_path"
 
 arduino-cli compile \
@@ -101,7 +100,6 @@ success "Compilation OK"
 step "Uploading firmware"
 
 # Extract MCU serial number for remoteocd
-local serial_no
 serial_no=$(arduino-cli board list --format json 2>/dev/null \
   | python3 -c "
 import json, sys
@@ -114,18 +112,16 @@ for p in json.load(sys.stdin).get('detected_ports', []):
 [ -n "$serial_no" ] || die "Could not detect MCU serial number. Is the board plugged in?"
 
 # Find tools (arduino-cli should have installed them)
-local remoteocd
 remoteocd=$(ls ~/Library/Arduino15/packages/arduino/tools/remoteocd/*/remoteocd 2>/dev/null | head -1)
 [ -n "$remoteocd" ] || die "remoteocd tool not found. Run: bash scripts/setup.sh"
 
-local adb_path
 adb_path=$(dirname "$(ls ~/Library/Arduino15/packages/arduino/tools/adb/*/adb 2>/dev/null | head -1)")
 [ -n "$adb_path" ] || die "adb tool not found"
 
-local variant_dir="$HOME/Library/Arduino15/packages/arduino/hardware/zephyr/0.55.0/variants/arduino_uno_q_stm32u585xx"
+variant_dir="$HOME/Library/Arduino15/packages/arduino/hardware/zephyr/0.55.0/variants/arduino_uno_q_stm32u585xx"
 [ -d "$variant_dir" ] || die "Zephyr variant not found: $variant_dir"
 
-local firmware="$build_path/sketch.ino.elf-zsk.bin"
+firmware="$build_path/sketch.ino.elf-zsk.bin"
 [ -f "$firmware" ] || die "Compiled firmware not found: $firmware"
 
 info "Serial: $serial_no"

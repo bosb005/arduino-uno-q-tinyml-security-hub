@@ -50,11 +50,19 @@ def _update_matrix(event: str):
     pass  # MCU manages LED matrix locally — no Bridge call needed
 
 
+def _normalize_confidence(confidence) -> float:
+    c = float(confidence)
+    if c > 1.0:
+        c = c / 100.0
+    return max(0.0, min(1.0, c))
+
+
 def handle_event(event_name, confidence=0.0, ts=0):
     """Called whenever an acoustic event arrives (Bridge or mock)."""
+    conf = _normalize_confidence(confidence)
     entry = {
         "event": str(event_name),
-        "confidence": round(float(confidence), 2),
+        "confidence": round(conf, 2),
         "ts": int(ts) if ts else int(time.time() * 1000),
         "last_updated": _timestamp(),
     }
@@ -65,9 +73,18 @@ def handle_event(event_name, confidence=0.0, ts=0):
         state["last_updated"] = entry["last_updated"]
         state["history"] = [entry] + state["history"][:49]
         snapshot = dict(state)
-    logger.info(f"Event: {event_name}  confidence={confidence:.2f}")
+    logger.info(f"Event: {event_name}  confidence={conf:.2f}")
     ui.send_message("acoustic_event", snapshot)
     _update_matrix(entry["event"])
+
+
+def _handle_acoustic_event(event_name, confidence=0.0, ts=0, *_):
+    """Bridge callback for MCU acoustic events.
+
+    The bridge may append implementation-specific metadata, so keep the handler
+    permissive like the audio-test app does.
+    """
+    handle_event(event_name, confidence, ts)
 
 
 # ── REST endpoints ─────────────────────────────────────────────────────────
@@ -107,10 +124,7 @@ def _mock_loop():
 if MOCK:
     threading.Thread(target=_mock_loop, daemon=True, name="mock-events").start()
 else:
-    Bridge.provide(
-        "acoustic_event",
-        lambda event_name, confidence=0.0, ts=0: handle_event(event_name, confidence, ts),
-    )
+    Bridge.provide("acoustic_event", _handle_acoustic_event)
     logger.info("Bridge: registered 'acoustic_event' provider")
 
 App.run()

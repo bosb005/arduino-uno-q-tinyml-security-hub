@@ -19,6 +19,13 @@ bool audio_init();
 // Returns true when a full 1024-sample frame is available (used by legacy code).
 bool audio_ready();
 
+// Start a new frame capture into the internal frame buffer.
+void audio_start_frame_capture();
+
+// Capture up to max_samples into the internal frame buffer.
+// Returns true once AUDIO_FRAME_SAMPLES are fully captured.
+bool audio_capture_frame_step(int max_samples);
+
 // Returns a pointer to the ready frame.
 int16_t* audio_get_frame();
 

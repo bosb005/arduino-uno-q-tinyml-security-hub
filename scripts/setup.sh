@@ -108,5 +108,5 @@ echo -e "     Run: ${CYAN}arduino-cli board listall | grep -i 'uno q'${NC} to co
 echo -e "  2. Train the model (if not already done):"
 echo -e "     ${CYAN}bash scripts/ei_record.sh${NC}          # record samples"
 echo -e "     ${CYAN}bash scripts/ei_workflow.sh --step all${NC}  # train + export ZIP"
-echo -e "  3. Run: ${CYAN}./deploy.sh all${NC}"
-echo -e "     (The Edge Impulse library ZIP is installed automatically during firmware compile)"
+echo -e "  3. Run: ${CYAN}bash scripts/cycle.sh${NC}"
+echo -e "     (Full deploy + test loop; the Edge Impulse library ZIP is installed automatically during firmware compile)"

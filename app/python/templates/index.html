@@ -317,7 +317,7 @@
             </article>
         </section>
 
-        <div class="footer">Dashboard binds to port 5000 and reconnects automatically if Wi-Fi drops.</div>
+        <div class="footer">Dashboard binds to port 7000 and reconnects automatically if Wi-Fi drops.</div>
     </main>
 
     <script>
@@ -325,7 +325,8 @@
             idle: { color: '#4caf50', emoji: '🟢' },
             presence: { color: '#ff9800', emoji: '🟠' },
             anomaly: { color: '#f44336', emoji: '🔴' },
-            manual_trigger: { color: '#2196f3', emoji: '🔵' }
+            manual_trigger: { color: '#2196f3', emoji: '🔵' },
+            error: { color: '#ff6b6b', emoji: '⚠️' }
         };
 
         function getEventStyle(eventName) {
