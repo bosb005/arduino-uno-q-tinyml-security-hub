@@ -5,7 +5,7 @@
 Board: Arduino UNO Q (dual-core: STM32 MCU + Linux module)
 Hardware docs: https://docs.arduino.cc/tutorials/uno-q/user-manual/
 Microphone: INMP441 (digital I2S MEMS microphone)
-Adapter: QWIIC breakout adapter with I2S header (note: the electrical interface is I2S, not QWIIC protocol)
+Adapter: direct Dupont jumper wiring for I2S lines (note: the electrical interface is I2S, not I2C protocol)
 
 ## Your Task
 
@@ -16,7 +16,7 @@ A detailed wiring guide:
 - List all INMP441 pins (VDD, GND, SD, WS, SCK, L/R) and their function
 - Map each pin to the correct Arduino UNO Q I2S / GPIO header pin
 - Include a text-based pinout table
-- Note correct L/R pin setting for mono capture (left channel: L/R = GND)
+- Note correct L/R pin setting for mono capture (project wiring: L/R -> D7, firmware drives D7 LOW for left channel)
 - Power supply requirements (3.3 V)
 - Any decoupling capacitor recommendations
 
@@ -33,7 +33,7 @@ A hardware validation checklist:
 - Serial monitor shows no error on I2S init
 
 ## Notes
-- The QWIIC connector is used only for mechanical convenience; the actual signals are I2S lines
+- Use direct Dupont jumper wiring; the actual signals are I2S lines
 - The Arduino UNO Q I2S peripheral must be identified from the user manual linked above
 - Do NOT use PDM — the INMP441 outputs standard I2S (not PDM)
 - Target: 16 kHz, mono, 32-bit I2S frames (data in upper 24 bits)

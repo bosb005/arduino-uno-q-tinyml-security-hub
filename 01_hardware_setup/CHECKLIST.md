@@ -5,7 +5,7 @@
 - [ ] **I2S data line connected:** `INMP441 SD -> UNO Q D8`
 - [ ] **I2S word-select connected:** `INMP441 WS -> UNO Q D10`
 - [ ] **I2S bit-clock connected:** `INMP441 SCK -> UNO Q D9`
-- [ ] **Channel-select strap confirmed:** `INMP441 L/R -> GND` for left-channel mono capture
+- [ ] **Channel-select wiring confirmed:** `INMP441 L/R -> UNO Q D7`; firmware drives D7 `LOW` for left-channel mono capture
 - [ ] **Decoupling fitted:** 100 nF capacitor installed between `VDD` and `GND` near the microphone
 - [ ] **No short circuits:** multimeter continuity check confirms no shorts between `3.3V` and `GND`
 - [ ] **Board powers up normally:** UNO Q boots with microphone attached

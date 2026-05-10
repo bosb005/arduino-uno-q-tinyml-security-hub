@@ -193,7 +193,7 @@
 
   <!-- ═══════════════ WIRES (orthogonal, crossings without dots = not connected) ═══════════════ -->
 
-  <!-- GND bus: Arduino GND → L/R → Module right GND, all wired together -->
+  <!-- GND bus: Arduino GND → Module right GND, all wired together -->
   <!-- Rail stops at x=850 (GND right vertical); cap handles the tap to 3.3V vertical -->
   <line x1="128" y1="455" x2="850" y2="455" stroke="#444" stroke-width="2"/>
   <!-- Junction dot at (850,430) removed — rail ends here, no T-junction -->

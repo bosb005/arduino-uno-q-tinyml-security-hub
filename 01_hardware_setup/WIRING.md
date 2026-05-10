@@ -3,7 +3,7 @@
 ## Important notes first
 
 - **Power the microphone from 3.3 V only.**
-- The **QWIIC breakout is only a convenient connector/mechanical adapter** here. The signal set is **I2S**, **not** the QWIIC/I2C protocol.
+- This setup uses **direct Dupont jumper wiring**. The signal set is **I2S**, **not** I2C protocol signaling.
 - For this project, use **mono / left-channel capture** by connecting **L/R to D7** — the firmware drives D7 LOW to select the left channel.
 - Add a **100 nF ceramic decoupling capacitor** between **VDD** and **GND**, placed as close to the INMP441 breakout as possible.
 

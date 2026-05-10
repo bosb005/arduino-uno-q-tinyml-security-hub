@@ -12,9 +12,9 @@ Most consumer security devices stream sensor data to cloud services, which hurts
 ## Hardware
 - Arduino UNO Q
 - INMP441 I2S MEMS microphone
-- QWIIC breakout adapter
+- Dupont jumper wires
 - 100 nF ceramic capacitor (local mic decoupling)
-- Jumper wires + USB-C cable
+- USB-C cable
 
 ## Quick Start
 

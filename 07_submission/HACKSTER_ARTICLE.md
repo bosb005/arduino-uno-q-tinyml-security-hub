@@ -8,9 +8,9 @@ Privacy-first acoustic event detection at the edge using TinyML on Arduino UNO Q
 🔧 Hardware:
 - Arduino UNO Q (MCU + Linux on one board)
 - INMP441 MEMS microphone (digital I2S mic, 16 kHz mono capture)
-- QWIIC breakout adapter (used as physical adapter only; signal is I2S, not I2C)
+- Dupont jumper wires (direct I2S wiring)
 - 100 nF ceramic capacitor (local decoupling for mic board)
-- Jumper wires + USB-C cable
+- USB-C cable
 
 💻 Software:
 - Arduino IDE / Arduino App Lab
@@ -47,7 +47,7 @@ Key connections:
 - SD  -> D8   (I2S serial data)
 - WS  -> D10  (I2S word select / LRCLK)
 - SCK -> D9   (I2S bit clock / BCLK)
-- L/R -> GND  (force left channel for mono)
+- L/R -> D7   (firmware drives D7 LOW to force left channel mono)
 
 Place 100 nF capacitor between VDD and GND near the mic breakout.
 

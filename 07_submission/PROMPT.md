@@ -30,8 +30,8 @@ Write a full Hackster.io project article with these sections (use the contest Q&
 |-----------|-----|-------|
 | Arduino UNO Q | 1 | Contest hardware |
 | INMP441 MEMS microphone | 1 | I2S digital |
-| QWIIC breakout adapter | 1 | For I2S wiring |
-| Jumper wires | ~6 | 3.3 V tolerant |
+| Dupont jumper wires | ~6 | For direct I2S wiring |
+| USB-A to USB-C cable | 1 | Power + programming |
 | USB-A to USB-C cable | 1 | Power + programming |
 | Wi-Fi router / AP | 1 | Home network |
 

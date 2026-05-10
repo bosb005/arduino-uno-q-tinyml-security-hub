@@ -9,7 +9,7 @@ This file captures key design choices made during planning. Update it as decisio
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
 | Microphone | INMP441 (I2S digital) | Clean signal, no analog noise, direct I2S interface on UNO Q |
-| Adapter | QWIIC breakout with I2S wiring | Convenient mechanical connection; electrically I2S (not QWIIC protocol) |
+| Wiring | Dupont jumper wires for I2S lines | Simple direct wiring; electrically I2S (not I2C protocol) |
 | Board | Arduino UNO Q | Contest hardware; dual-core MCU + Linux on one board |
 
 ## Audio Pipeline

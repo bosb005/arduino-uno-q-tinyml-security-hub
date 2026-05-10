@@ -10,7 +10,7 @@ using on-device TinyML inference. No cloud. No audio streaming. Fully private.
 ## Hardware
 - Arduino UNO Q
 - INMP441 I2S MEMS microphone
-- QWIIC breakout adapter
+- Dupont jumper wires
 
 ## Quick Start
 
