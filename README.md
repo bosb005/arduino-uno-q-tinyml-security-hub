@@ -50,6 +50,18 @@ For the full deploy + validation loop, use:
 
 Dashboard/API endpoint: `http://<board-ip>:7000`
 
+## Audio-test rolling WAV mode
+
+`app_audio_test` now writes rolling WAV windows (not just a single overwrite):
+- per-window files: `/home/arduino/ArduinoApps/audio-test/windows/window-*.wav`
+- latest window (SCP-friendly): `/home/arduino/ArduinoApps/audio-test/test.wav`
+
+Runtime knobs in `app_audio_test/python/main.py`:
+- `WINDOW_OUTPUT_DIR`
+- `WINDOW_KEEP_COUNT`
+- `OUTPUT_PATH`
+- `ENABLE_CLASSIFY` and `CLASSIFY_CONFIDENCE` (optional classify-from-file on each window)
+
 ## Edge Impulse App Lab brick path
 
 The app now includes the `arduino:audio_classification` brick wired to model `ei-model-129923-1` in `app/app.yaml`.

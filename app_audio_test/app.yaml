@@ -2,6 +2,7 @@ name: audio-test
 icon: 🎙
 description: >
   Temporary audio capture test app.
-  Records 5 seconds of audio from INMP441 I2S microphone and saves a WAV file.
+  Records rolling audio windows from INMP441 I2S microphone, writes WAV files,
+  and can optionally classify each window via Edge Impulse AudioClassification.
   Deploy with: ./deploy.sh audio-test
 ports: []
