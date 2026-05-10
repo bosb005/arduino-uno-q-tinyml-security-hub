@@ -176,8 +176,11 @@ else:
       "win_size": 101
     }
   }'
-  RESULT=$(ei_post "/$PROJECT_ID/dsp/2/config" "$MFCC_PAYLOAD")
-  echo "$RESULT" | python3 -c "
+  RESULT=$(ei_post "/$PROJECT_ID/dsp/2/config" "$MFCC_PAYLOAD" 2>/dev/null || true)
+  if [[ -z "$RESULT" ]]; then
+    echo "  WARN: MFCC config endpoint returned no response (dashboard may need manual review)"
+  else
+    echo "$RESULT" | python3 -c "
 import json,sys
 d=json.load(sys.stdin)
 if not d.get('success'):
@@ -185,6 +188,7 @@ if not d.get('success'):
 else:
     print('✓ MFCC parameters set')
 "
+  fi
   echo ""
   echo "Note: NN architecture (Dense 64→32, dropout 0.25) is set during training."
   echo "If impulse/MFCC config calls failed, configure manually in the EI dashboard"
@@ -234,18 +238,28 @@ print(d.get('id', ''))
 _wait_for_job() {
   local JOB="$1"
   while true; do
-    STATUS=$(ei_get "/$PROJECT_ID/jobs/$JOB" | python3 -c "
+    STATUS_JSON=$(ei_get "/$PROJECT_ID/jobs/$JOB/status" 2>/dev/null || true)
+    if [[ -z "$STATUS_JSON" ]]; then
+      STATUS_JSON=$(ei_get "/$PROJECT_ID/jobs/$JOB" 2>/dev/null || true)
+    fi
+    if [[ -z "$STATUS_JSON" ]]; then
+      echo "  status: unavailable"
+      sleep 30
+      continue
+    fi
+    STATUS=$(echo "$STATUS_JSON" | python3 -c "
 import json,sys
 d=json.load(sys.stdin)
 j=d.get('job',{})
-print(j.get('finished','false'), j.get('success',''), j.get('status','running'))
+print(d.get('success', False), j.get('finished', False), j.get('finishedSuccessful', False), j.get('status', 'running'))
 ")
-    FINISHED=$(echo "$STATUS" | awk '{print $1}')
-    SUCCESS=$(echo  "$STATUS" | awk '{print $2}')
-    STATE=$(echo    "$STATUS" | awk '{print $3}')
+    API_OK=$(echo "$STATUS" | awk '{print $1}')
+    FINISHED=$(echo "$STATUS" | awk '{print $2}')
+    SUCCESS=$(echo  "$STATUS" | awk '{print $3}')
+    STATE=$(echo    "$STATUS" | awk '{print $4}')
     echo "  status: $STATE"
     if [[ "$FINISHED" == "True" || "$FINISHED" == "true" ]]; then
-      if [[ "$SUCCESS" != "True" && "$SUCCESS" != "true" ]]; then
+      if [[ "$API_OK" != "True" && "$API_OK" != "true" ]] || [[ "$SUCCESS" != "True" && "$SUCCESS" != "true" ]]; then
         echo "✗ Job $JOB failed. Check Edge Impulse dashboard for details."
         exit 1
       fi
