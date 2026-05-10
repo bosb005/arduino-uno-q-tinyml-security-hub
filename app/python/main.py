@@ -8,6 +8,16 @@ from arduino.app_utils import App, Bridge, Logger
 
 logger = Logger("SecurityHub")
 BRIDGE_STALE_MS = int(os.getenv("BRIDGE_STALE_MS", "15000"))
+USE_EI_BRICK = os.getenv("USE_EI_BRICK", "0").lower() in ("1", "true", "yes")
+USE_EI_WAV_CLASSIFIER = os.getenv("USE_EI_WAV_CLASSIFIER", "0").lower() in ("1", "true", "yes")
+EI_WAV_PATH = os.getenv("EI_WAV_PATH", "/home/arduino/ArduinoApps/audio-test/test.wav")
+EI_WAV_CONFIDENCE = float(os.getenv("EI_WAV_CONFIDENCE", "0.80"))
+EI_WAV_POLL_SEC = float(os.getenv("EI_WAV_POLL_SEC", "2.0"))
+EI_BRICK_LABELS = [
+    s.strip()
+    for s in os.getenv("EI_BRICK_LABELS", "presence,anomaly,manual_trigger,idle").split(",")
+    if s.strip()
+]
 
 # ── Mock-mode resolution ───────────────────────────────────────────────────
 _mock_env = os.getenv("MOCK", "auto").lower()
@@ -37,6 +47,7 @@ state: dict = {
     "bridge_last_event_ms": 0,
     "bridge_provider_registered": MOCK,
     "bridge_provider_registration_error": "",
+    "event_source": "mock" if MOCK else "bridge",
     "bridge_first_event_seen": False,
     "bridge_flow_ack_sent": MOCK,
     "bridge_flow_ack_seen_by_mcu": MOCK,
@@ -85,8 +96,8 @@ def _send_bridge_flow_ack():
         logger.exception("Failed to send bridge flow ACK")
 
 
-def handle_event(event_name, confidence=0.0, ts=0):
-    """Called whenever an acoustic event arrives (Bridge or mock)."""
+def handle_event(event_name, confidence=0.0, ts=0, source="bridge"):
+    """Called whenever an acoustic event arrives."""
     conf = _normalize_confidence(confidence)
     now_ms = int(time.time() * 1000)
     entry = {
@@ -100,6 +111,7 @@ def handle_event(event_name, confidence=0.0, ts=0):
         state["confidence"] = entry["confidence"]
         state["ts"] = entry["ts"]
         state["last_updated"] = entry["last_updated"]
+        state["event_source"] = source
         state["bridge_last_event_ms"] = now_ms
         state["bridge_first_event_seen"] = True
         state["history"] = [entry] + state["history"][:49]
@@ -110,7 +122,8 @@ def handle_event(event_name, confidence=0.0, ts=0):
         logger.info(f"Event: {event_name}  confidence={conf:.2f}")
     ui.send_message("acoustic_event", snapshot)
     _update_matrix(entry["event"])
-    _send_bridge_flow_ack()
+    if source == "bridge":
+        _send_bridge_flow_ack()
 
 
 def _handle_acoustic_event(event_name, confidence=0.0, ts=0, *_):
@@ -136,6 +149,7 @@ def _health_state():
         first_event_seen = bool(state.get("bridge_first_event_seen", False))
         ack_sent = bool(state.get("bridge_flow_ack_sent", False))
         ack_seen = bool(state.get("bridge_flow_ack_seen_by_mcu", False))
+        event_source = str(state.get("event_source", "bridge"))
 
     if MOCK:
         return {
@@ -165,7 +179,7 @@ def _health_state():
         "dashboard": {"healthy": True},
         "bridge": {
             "alive": alive,
-            "mode": "live",
+            "mode": event_source,
             "provider_registered": provider_registered,
             "provider_registration_error": provider_error or None,
             "last_event_age_ms": age_ms,
@@ -176,7 +190,13 @@ def _health_state():
             "flow_ack_seen_by_mcu": ack_seen,
             "stale": stale,
             "state": "waiting_for_events" if no_events_yet else ("stale" if stale else "alive"),
-            "failure_point": "Bridge.provide(acoustic_event) callback starvation",
+            "failure_point": (
+                "KeywordSpotting brick callback starvation"
+                if event_source.startswith("ei_keyword_spotting")
+                else "AudioClassification WAV pipeline idle"
+                if event_source.startswith("ei_audio_classification_wav")
+                else "Bridge.provide(acoustic_event) callback starvation"
+            ),
         },
     }
 
@@ -235,21 +255,101 @@ def _mock_loop():
         time.sleep(random.uniform(3, 8))
 
 
+def _handle_keyword_detected(label):
+    handle_event(label, 1.0, int(time.time()), source="ei_keyword_spotting")
+
+
+def _classify_wav_once():
+    try:
+        from arduino.app_bricks.audio_classification import (
+            AudioClassification,
+            AudioClassificationException,
+        )
+    except Exception as exc:
+        logger.exception("AudioClassification brick import failed")
+        return {"ok": False, "error": str(exc)}
+
+    try:
+        result = AudioClassification.classify_from_file(EI_WAV_PATH, EI_WAV_CONFIDENCE)
+    except AudioClassificationException as exc:
+        logger.warning(f"WAV classification failed: {exc}")
+        return {"ok": False, "error": str(exc), "path": EI_WAV_PATH}
+    except Exception as exc:
+        logger.exception("Unexpected WAV classification error")
+        return {"ok": False, "error": str(exc), "path": EI_WAV_PATH}
+
+    if not result:
+        return {"ok": True, "path": EI_WAV_PATH, "result": None}
+
+    class_name = str(result.get("class_name", "idle"))
+    confidence = float(result.get("confidence", 0.0))
+    handle_event(class_name, confidence, int(time.time()), source="ei_audio_classification_wav")
+    return {"ok": True, "path": EI_WAV_PATH, "result": result}
+
+
+def _wav_classifier_loop():
+    logger.info(
+        f"WAV classifier mode enabled path={EI_WAV_PATH} confidence={EI_WAV_CONFIDENCE:.2f} poll={EI_WAV_POLL_SEC:.1f}s"
+    )
+    last_mtime = 0.0
+    while True:
+        try:
+            if os.path.exists(EI_WAV_PATH):
+                mtime = os.path.getmtime(EI_WAV_PATH)
+                if mtime > last_mtime:
+                    last_mtime = mtime
+                    _classify_wav_once()
+        except Exception:
+            logger.exception("WAV classifier loop error")
+        time.sleep(max(0.5, EI_WAV_POLL_SEC))
+
+# Expose manual WAV classification after helper is defined.
+ui.expose_api("GET", "/classify-wav-now", _classify_wav_once)
+
+
 # ── Startup ────────────────────────────────────────────────────────────────
 if MOCK:
     threading.Thread(target=_mock_loop, daemon=True, name="mock-events").start()
 else:
-    try:
-        Bridge.provide("acoustic_event", _handle_acoustic_event)
-        Bridge.provide("bridge_flow_ack_seen", _handle_bridge_flow_ack_seen)
-        with state_lock:
-            state["bridge_provider_registered"] = True
-            state["bridge_provider_registration_error"] = ""
-        logger.info("Bridge: registered providers 'acoustic_event' + 'bridge_flow_ack_seen'")
-    except Exception as exc:
-        with state_lock:
-            state["bridge_provider_registered"] = False
-            state["bridge_provider_registration_error"] = str(exc)
-        logger.exception("Bridge provider registration failed")
+    using_brick = False
+    if USE_EI_BRICK:
+        try:
+            from arduino.app_bricks.keyword_spotting import KeywordSpotting
+
+            spotter = KeywordSpotting()
+            for label in EI_BRICK_LABELS:
+                spotter.on_detect(label, lambda lbl=label: _handle_keyword_detected(lbl))
+
+            with state_lock:
+                state["bridge_provider_registered"] = True
+                state["bridge_provider_registration_error"] = ""
+                state["event_source"] = "ei_keyword_spotting"
+            logger.info(f"EI brick mode enabled: keyword_spotting labels={EI_BRICK_LABELS}")
+            using_brick = True
+        except Exception as exc:
+            with state_lock:
+                state["bridge_provider_registered"] = False
+                state["bridge_provider_registration_error"] = str(exc)
+                state["event_source"] = "ei_keyword_spotting_error"
+            logger.exception("KeywordSpotting brick registration failed")
+
+    if not using_brick:
+        try:
+            Bridge.provide("acoustic_event", _handle_acoustic_event)
+            Bridge.provide("bridge_flow_ack_seen", _handle_bridge_flow_ack_seen)
+            with state_lock:
+                state["bridge_provider_registered"] = True
+                state["bridge_provider_registration_error"] = ""
+                state["event_source"] = "bridge"
+            logger.info("Bridge: registered providers 'acoustic_event' + 'bridge_flow_ack_seen'")
+        except Exception as exc:
+            with state_lock:
+                state["bridge_provider_registered"] = False
+                state["bridge_provider_registration_error"] = str(exc)
+                state["event_source"] = "bridge_error"
+            logger.exception("Bridge provider registration failed")
+
+    if USE_EI_WAV_CLASSIFIER:
+        threading.Thread(target=_wav_classifier_loop, daemon=True, name="ei-wav-classifier").start()
 
 App.run()

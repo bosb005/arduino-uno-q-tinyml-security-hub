@@ -50,6 +50,21 @@ For the full deploy + validation loop, use:
 
 Dashboard/API endpoint: `http://<board-ip>:7000`
 
+## Edge Impulse App Lab brick path
+
+The app now includes the `arduino:audio_classification` brick wired to model `ei-model-129923-1` in `app/app.yaml`.
+On deploy, App Lab starts a sidecar runner container (`ei-audio-classifier-runner`) for that model.
+
+Notes:
+- This keeps an App Lab-compatible EI model path available even when MCU inferencing is being debugged.
+- `keyword_spotting` brick was intentionally not enabled in this app because it hard-fails startup on this device when no Linux microphone is available.
+- A WAV-based fallback is exposed at `GET /classify-wav-now` (uses `AudioClassification.classify_from_file`).
+  Configure via env vars in the app container:
+  - `USE_EI_WAV_CLASSIFIER=1` (optional background watcher mode)
+  - `EI_WAV_PATH` (default `/home/arduino/ArduinoApps/audio-test/test.wav`)
+  - `EI_WAV_CONFIDENCE` (default `0.80`)
+  - `EI_WAV_POLL_SEC` (default `2.0`)
+
 ## Bridge diagnostics (dashboard healthy but no events)
 
 If the UI opens but events never change, triage with bridge-aware health checks:

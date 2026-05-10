@@ -8,3 +8,5 @@ ports:
   - 7000
 bricks:
   - arduino:web_ui
+  - arduino:audio_classification:
+      model: ei-model-129923-1

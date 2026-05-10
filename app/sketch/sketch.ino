@@ -13,14 +13,77 @@ void ei_printf_float(float /*f*/) {}
 #include "Arduino_RouterBridge.h"
 #include "Arduino_LED_Matrix.h"
 #include "audio_capture.h"
+#include <cstdint>
 #include <cstring>
+#include <cstdlib>
 
-#define SKIP_INFERENCE 1
-#define DEBUG_BYPASS_CLASSIFIER 0
+#ifndef SKIP_INFERENCE
+#define SKIP_INFERENCE 0
+#endif
+#ifndef DEBUG_BYPASS_CLASSIFIER
+#define DEBUG_BYPASS_CLASSIFIER 1
+#endif
+#ifndef EI_HEADER_ENABLED
+#define EI_HEADER_ENABLED 0
+#endif
 
-#if !SKIP_INFERENCE
+#if !SKIP_INFERENCE && EI_HEADER_ENABLED
 #include <security-hub-acoustic_inferencing.h>
 #endif
+
+// UNO Q LLEXT runtime may not export some libc symbols EI/TFLM pulls in.
+// Provide tiny local shims so the sketch can load and run on-device.
+extern "C" int* __errno(void) {
+  static int shim_errno = 0;
+  return &shim_errno;
+}
+extern "C" long long strtoll(const char* nptr, char** endptr, int base) {
+  return (long long)strtol(nptr, endptr, base);
+}
+extern "C" unsigned long long strtoull(const char* nptr, char** endptr, int base) {
+  return (unsigned long long)strtoul(nptr, endptr, base);
+}
+extern "C" void* bsearch(const void* key, const void* base, size_t nmemb, size_t size,
+                         int (*compar)(const void*, const void*)) {
+  const unsigned char* p = static_cast<const unsigned char*>(base);
+  for (size_t i = 0; i < nmemb; ++i) {
+    const void* elem = p + (i * size);
+    if (compar(key, elem) == 0) return const_cast<void*>(elem);
+  }
+  return nullptr;
+}
+extern "C" int __aeabi_d2iz(double v) { return (int)v; }
+extern "C" long long __aeabi_d2lz(double v) { return (long long)v; }
+extern "C" unsigned long long __aeabi_d2ulz(double v) { return (unsigned long long)v; }
+extern "C" int __aeabi_dcmpeq(double a, double b) { return (a == b) ? 1 : 0; }
+extern "C" int __aeabi_dcmpge(double a, double b) { return (a >= b) ? 1 : 0; }
+extern "C" long long __aeabi_f2lz(float v) { return (long long)v; }
+extern "C" void* __aeabi_read_tp(void) { return (void*)__errno(); }
+extern "C" int __clrsbsi2(int x) {
+  int count = 0;
+  int sign = x >> 31;
+  while (((x >> 30) & 1) == (sign & 1) && count < 31) {
+    x <<= 1;
+    ++count;
+  }
+  return count;
+}
+extern "C" void __assert_no_args(void) { __builtin_trap(); }
+extern "C" uint16_t __gnu_d2h_ieee(double d) {
+  // Approximate IEEE754 binary16 conversion for ABI compatibility.
+  float f = (float)d;
+  union {
+    float f;
+    uint32_t u;
+  } in = { f };
+  uint32_t sign = (in.u >> 31) & 0x1;
+  int32_t exp = (int32_t)((in.u >> 23) & 0xFF) - 127 + 15;
+  uint32_t mant = in.u & 0x7FFFFF;
+
+  if (exp <= 0) return (uint16_t)(sign << 15);
+  if (exp >= 31) return (uint16_t)((sign << 15) | 0x7C00);
+  return (uint16_t)((sign << 15) | ((uint32_t)exp << 10) | (mant >> 13));
+}
 
 ArduinoLEDMatrix matrix;
 
