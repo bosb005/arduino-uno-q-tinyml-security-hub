@@ -130,6 +130,33 @@ check_device_ip() {
     die "DEVICE_IP not set. Edit deploy.env."
 }
 
+bridge_health_summary() {
+  local health_payload="$1"
+  python3 -c "import json,sys
+try:
+    d=json.loads(sys.argv[1])
+except Exception:
+    print('bridge_health=unavailable')
+    sys.exit(0)
+b=d.get('bridge', {}) or {}
+parts=[
+    f\"status={d.get('status')}\",
+    f\"mock={d.get('mock')}\",
+    f\"alive={b.get('alive')}\",
+    f\"state={b.get('state')}\",
+    f\"age_ms={b.get('last_event_age_ms')}\",
+    f\"stale_after_ms={b.get('stale_after_ms')}\",
+    f\"provider_registered={b.get('provider_registered')}\",
+]
+err=b.get('provider_registration_error')
+if err:
+    parts.append(f'provider_error={err}')
+fail=b.get('failure_point')
+if fail:
+    parts.append(f'failure_point={fail}')
+print(', '.join(parts))" "$health_payload"
+}
+
 # ── Auto-detect Arduino port ──────────────────────────────────
 resolve_port() {
   if [ "$ARDUINO_PORT" = "auto" ]; then
@@ -580,19 +607,54 @@ cmd_test() {
   step "Bridge transport test"
   cmd_bridge_test
 
-  step "Live dashboard event check"
+  step "Live bridge freshness check"
   local got_event="no"
+  local last_health_payload='{}'
   for _ in $(seq 1 15); do
-    if curl -sf "http://${DEVICE_IP}:7000/state" 2>/dev/null | grep -q '"last_updated":"[^"]'; then
+    last_health_payload=$(curl -sf "http://${DEVICE_IP}:7000/health" 2>/dev/null || echo '{}')
+    if "$SCRIPT_DIR"/scripts/health-check.sh --json --require-bridge-fresh >/dev/null 2>&1; then
       got_event="yes"
       break
     fi
     sleep 2
   done
-  [ "$got_event" = "yes" ] || die "No live event observed on /state after restore"
+  [ "$got_event" = "yes" ] || die "Bridge freshness check failed after restore ($(bridge_health_summary "$last_health_payload"))"
+
+  step "Bridge continuity check"
+  local baseline_event_ms
+  baseline_event_ms=$(curl -sf "http://${DEVICE_IP}:7000/state" 2>/dev/null | \
+    python3 -c "import json,sys
+try:
+    d=json.load(sys.stdin)
+except Exception:
+    print(0); sys.exit(0)
+print(int(d.get('bridge_last_event_ms', 0) or 0))") || baseline_event_ms=0
+  [ "$baseline_event_ms" -gt 0 ] || die "No bridge event baseline captured from /state"
+
+  local bridge_advanced="no"
+  for _ in $(seq 1 12); do
+    local current_event_ms
+    current_event_ms=$(curl -sf "http://${DEVICE_IP}:7000/state" 2>/dev/null | \
+      python3 -c "import json,sys
+try:
+    d=json.load(sys.stdin)
+except Exception:
+    print(0); sys.exit(0)
+print(int(d.get('bridge_last_event_ms', 0) or 0))") || current_event_ms=0
+    if [ "$current_event_ms" -gt "$baseline_event_ms" ]; then
+      bridge_advanced="yes"
+      break
+    fi
+    sleep 2
+  done
+  if [ "$bridge_advanced" != "yes" ]; then
+    local continuity_health_payload
+    continuity_health_payload=$(curl -sf "http://${DEVICE_IP}:7000/health" 2>/dev/null || echo '{}')
+    die "Bridge stalled: /health may respond but acoustic_event callback stopped advancing (baseline_ms=${baseline_event_ms}, $(bridge_health_summary "$continuity_health_payload"))"
+  fi
 
   step "Post-test health check"
-  "$SCRIPT_DIR"/scripts/health-check.sh --json
+  "$SCRIPT_DIR"/scripts/health-check.sh --json --require-bridge-fresh
   success "Device test cycle complete"
 }
 

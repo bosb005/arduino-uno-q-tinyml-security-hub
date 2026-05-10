@@ -115,17 +115,17 @@ Format used in each section:
 
 | Item | Details |
 | --- | --- |
-| Problem | The browser cannot open `http://<board-ip>:5000` and reports connection refused or timeout. |
-| Cause | Flask is not running, wrong IP address, firewall/network issue, or the service failed to start. |
-| Fix | 1. SSH into the board. 2. Start the app manually with `python3 app.py` from the dashboard directory. 3. Verify it binds to `0.0.0.0:5000`. 4. Check the board IP address with `ip addr` or your network tools. 5. If using a service, inspect `systemctl status security_hub`. 6. Retry from the browser after confirming the process is running. |
+| Problem | The browser cannot open `http://<board-ip>:7000` and reports connection refused or timeout. |
+| Cause | App is not running on device, wrong IP, router/app-cli startup issue, or network/firewall block. |
+| Fix | 1. Run `./deploy.sh status` from repo root. 2. Run `curl -sf http://<board-ip>:7000/health` and confirm JSON is returned. 3. If app is missing/stopped, redeploy with `./deploy.sh all`. 4. If needed, inspect runtime output with `./deploy.sh logs`. 5. Recheck `DEVICE_IP` and SSH reachability (`bash scripts/health-check.sh --json`). |
 
 ### 13. Dashboard loads but badge never updates
 
 | Item | Details |
 | --- | --- |
-| Problem | The page opens, but the current-state badge stays unchanged even when events occur. |
-| Cause | No serial input, SSE stream not connected, event callback not firing, or MCU only producing `idle`. |
-| Fix | 1. Verify `/api/state` returns JSON in the browser or with `curl`. 2. Confirm `/stream` stays open in browser developer tools. 3. Check Flask logs for received events. 4. Use `cat /dev/ttyS1` separately to confirm raw JSON exists. 5. Trigger known events and watch both UART and Flask logs. 6. If raw JSON exists but UI does not update, inspect the browser console for SSE/client-side errors. |
+| Problem | Dashboard is reachable, but event state appears stuck/empty even after known sound triggers. |
+| Cause | Bridge callback starvation, first-event not yet observed, provider registration failure, stale event stream, or client stream issue. |
+| Fix | 1. Check health bridge fields: `curl -sf http://<board-ip>:7000/health | python3 -m json.tool`. 2. Interpret `bridge.state`: `waiting_for_events` (no events yet), `alive` (events flowing), `stale` (callback starvation). 3. Check `provider_registered`, `provider_registration_error`, `last_event_age_ms`, and `stale_after_ms`. 4. Run `bash scripts/health-check.sh --json --require-bridge-fresh` (this fails when dashboard is healthy but bridge events are stale/not advancing). 5. Compare `/state` snapshots a few seconds apart: `curl -sf http://<board-ip>:7000/state | python3 -m json.tool` and verify `bridge_last_event_ms` advances after a trigger. 6. If `/health` reports bridge alive but UI still does not update, confirm browser `/stream` connection and console errors. |
 
 ### 14. SSE disconnects frequently
 
@@ -147,29 +147,29 @@ Format used in each section:
 
 ## Boot / Service
 
-### 16. systemd service fails to start
+### 16. App process fails to start after deploy
 
 | Item | Details |
 | --- | --- |
-| Problem | `systemctl status security_hub` shows `failed` or never reaches `active (running)`. |
-| Cause | Wrong working directory, missing Python dependency, incorrect service file path, or permission problems. |
-| Fix | 1. Run `systemctl status security_hub` and `journalctl -u security_hub -n 100`. 2. Verify the service points to the correct dashboard directory and Python executable. 3. Confirm `pip3 install -r requirements.txt` was run in the deployment environment. 4. Fix the service file, run `systemctl daemon-reload`, and restart the service. 5. Recheck status until it remains active. |
+| Problem | `./deploy.sh all` uploads firmware/app, but dashboard never becomes reachable on port 7000. |
+| Cause | App import/start failure, app-cli/router unavailable, bad environment config, or deployment interruption. |
+| Fix | 1. Run `./deploy.sh status` and confirm app-cli API + dashboard checks. 2. Run `./deploy.sh app-list` to verify the app is installed. 3. Restart app by redeploying (`./deploy.sh all`) or use app start/stop commands if needed. 4. Review startup output via `./deploy.sh logs`. 5. Verify `deploy.env` values (`DEVICE_IP`, `APP_CLI_PORT`, `APP_NAME`) are correct. |
 
-### 17. Service starts but crashes immediately
-
-| Item | Details |
-| --- | --- |
-| Problem | The service appears to start, then exits or restarts repeatedly. |
-| Cause | Python exception on launch, missing environment variables, serial open failure, or import error. |
-| Fix | 1. Review recent logs with `journalctl -u security_hub -n 100`. 2. Start `python3 app.py` manually from the same directory to reproduce the crash interactively. 3. Verify `SERIAL_PORT` and `SERIAL_BAUD` values if they are set in the service environment. 4. Confirm the serial device exists and is accessible. 5. Fix the underlying exception, then restart the service. |
-
-### 18. Dashboard works manually but not on boot
+### 17. App starts but bridge registration fails
 
 | Item | Details |
 | --- | --- |
-| Problem | Running `python3 app.py` manually works, but the dashboard is unavailable after reboot. |
-| Cause | Service not enabled, wrong startup ordering, incorrect working directory, or environment differences between shell and systemd. |
-| Fix | 1. Verify the service is enabled with `systemctl is-enabled security_hub`. 2. If needed, run `sudo systemctl enable security_hub`. 3. Confirm the service uses absolute paths for the app directory and Python interpreter. 4. Ensure it starts after the basic system and required serial device are available. 5. Reboot and retest the full boot sequence. |
+| Problem | `/health` returns `provider_registered=false` and `provider_registration_error` is populated. |
+| Cause | `Bridge.provide("acoustic_event", ...)` registration failed (router socket/runtime issue). |
+| Fix | 1. Query `curl -sf http://<board-ip>:7000/health | python3 -m json.tool`. 2. Inspect `provider_registration_error` details. 3. Restart deployment path with `./deploy.sh all` (restarts app/runtime path). 4. Re-run `bash scripts/health-check.sh --json --require-bridge-fresh`. 5. If still failing, capture `./deploy.sh logs` and verify router/app-cli availability with `./deploy.sh status`. |
+
+### 18. Deploy test passes preflight but post-restore events do not recover
+
+| Item | Details |
+| --- | --- |
+| Problem | `./deploy.sh test` fails on bridge freshness or continuity checks after bridge/audio test restore. |
+| Cause | Dashboard endpoint is healthy, but `acoustic_event` callback is no longer advancing (stale bridge path). |
+| Fix | 1. Run `./deploy.sh test` again and note the bridge health summary in failure output. 2. Query `/health` and check `bridge.state`, `last_event_age_ms`, and `failure_point`. 3. Trigger known audio events and confirm `/state` `bridge_last_event_ms` changes. 4. Run `bash scripts/health-check.sh --json --require-bridge-fresh` until it returns `status=ok`. 5. If still stale, redeploy full stack with `./deploy.sh all` before retesting. |
 
 ---
 
@@ -179,7 +179,7 @@ When the system fails end to end, debug in this order:
 1. **Audio capture** - does the microphone produce changing amplitude?
 2. **Inference** - do debug logs classify real sounds?
 3. **UART** - does `/dev/ttyS1` receive valid JSON?
-4. **Flask** - does `python3 app.py` stay running and log events?
-5. **Browser** - does `/stream` stay connected and update the UI?
-6. **systemd** - does everything recover automatically after boot?
-
+4. **Dashboard health** - does `curl -sf http://<board-ip>:7000/health` report `dashboard.healthy=true`?
+5. **Bridge freshness** - does `bash scripts/health-check.sh --json --require-bridge-fresh` pass?
+6. **State advancement** - does `/state` show `bridge_last_event_ms` moving after real triggers?
+7. **Browser stream** - does `/stream` stay connected and update the UI?

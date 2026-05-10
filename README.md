@@ -27,17 +27,16 @@ See [03_ai_model/EDGE_IMPULSE_SETUP.md](03_ai_model/EDGE_IMPULSE_SETUP.md)
 ### 3. Flash the firmware
 See [04_firmware_inference/README.md](04_firmware_inference/README.md)
 
-### 4. Run the dashboard
+### 4. Deploy firmware + app
 ```bash
-cd 05_linux_dashboard
-pip3 install -r requirements.txt
-python3 app.py
+bash scripts/setup.sh
+./deploy.sh all
 ```
-Open http://<board-ip>:7000
+Open `http://<board-ip>:7000`
 
-For the full device flow, use:
+For the full deploy + validation loop, use:
 ```bash
-bash scripts/cycle.sh
+./deploy.sh cycle
 ```
 
 ## Automated deploy/test cycle (repo root)
@@ -50,6 +49,23 @@ bash scripts/cycle.sh
 ```
 
 Dashboard/API endpoint: `http://<board-ip>:7000`
+
+## Bridge diagnostics (dashboard healthy but no events)
+
+If the UI opens but events never change, triage with bridge-aware health checks:
+
+```bash
+curl -sf http://<board-ip>:7000/health | python3 -m json.tool
+bash scripts/health-check.sh --json
+bash scripts/health-check.sh --json --require-bridge-fresh
+```
+
+Check `bridge` fields in `/health`:
+- `state=waiting_for_events` + `no_events_yet=true`: dashboard is up, callback registered, waiting for first event.
+- `state=stale` + `alive=false`: callback starvation/stale bridge path (`last_event_age_ms` exceeded `stale_after_ms`).
+- `provider_registered=false` or `provider_registration_error` non-empty: bridge provider registration failed.
+
+`--require-bridge-fresh` is the actionable gate for deploy/test workflows because it fails when the dashboard is reachable but bridge events are not advancing.
 
 ## Architecture
 
@@ -92,8 +108,9 @@ Pipeline stages:
 | `01_hardware_setup/` | INMP441 wiring, schematic, checklist |
 | `02_firmware_audio/` | I2S DMA audio capture backend |
 | `03_ai_model/` | Edge Impulse training pipeline and export notes |
-| `04_firmware_inference/` | TinyML inference sketch and event protocol |
-| `05_linux_dashboard/` | Flask app, SSE dashboard, systemd service |
+| `app/` | **Primary runtime path** (`app/sketch` firmware + `app/python` Linux web app on port 7000) |
+| `04_firmware_inference/` | Legacy/reference inference docs and earlier flow |
+| `05_linux_dashboard/` | Legacy/reference dashboard docs and earlier flow |
 | `06_integration/` | IPC specification, test plan, troubleshooting |
 | `07_submission/` | Hackster article, BOM, demo script, submission assets |
 | `DECISIONS.md` | Architecture decisions and rationale |

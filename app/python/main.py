@@ -7,6 +7,7 @@ from arduino.app_bricks.web_ui import WebUI
 from arduino.app_utils import App, Bridge, Logger
 
 logger = Logger("SecurityHub")
+BRIDGE_STALE_MS = int(os.getenv("BRIDGE_STALE_MS", "15000"))
 
 # ── Mock-mode resolution ───────────────────────────────────────────────────
 _mock_env = os.getenv("MOCK", "auto").lower()
@@ -33,6 +34,12 @@ state: dict = {
     "confidence": 0.0,
     "ts": 0,
     "last_updated": "",
+    "bridge_last_event_ms": 0,
+    "bridge_provider_registered": MOCK,
+    "bridge_provider_registration_error": "",
+    "bridge_first_event_seen": False,
+    "bridge_flow_ack_sent": MOCK,
+    "bridge_flow_ack_seen_by_mcu": MOCK,
     "history": [],
 }
 state_lock = threading.Lock()
@@ -57,9 +64,31 @@ def _normalize_confidence(confidence) -> float:
     return max(0.0, min(1.0, c))
 
 
+def _send_bridge_flow_ack():
+    if MOCK:
+        return
+
+    should_send = False
+    with state_lock:
+        if not bool(state.get("bridge_flow_ack_sent", False)):
+            state["bridge_flow_ack_sent"] = True
+            should_send = True
+    if not should_send:
+        return
+
+    try:
+        Bridge.notify("bridge_flow_ack", 1, int(time.time()))
+        logger.info("Bridge flow ACK sent to MCU")
+    except Exception:
+        with state_lock:
+            state["bridge_flow_ack_sent"] = False
+        logger.exception("Failed to send bridge flow ACK")
+
+
 def handle_event(event_name, confidence=0.0, ts=0):
     """Called whenever an acoustic event arrives (Bridge or mock)."""
     conf = _normalize_confidence(confidence)
+    now_ms = int(time.time() * 1000)
     entry = {
         "event": str(event_name),
         "confidence": round(conf, 2),
@@ -71,11 +100,17 @@ def handle_event(event_name, confidence=0.0, ts=0):
         state["confidence"] = entry["confidence"]
         state["ts"] = entry["ts"]
         state["last_updated"] = entry["last_updated"]
+        state["bridge_last_event_ms"] = now_ms
+        state["bridge_first_event_seen"] = True
         state["history"] = [entry] + state["history"][:49]
         snapshot = dict(state)
-    logger.info(f"Event: {event_name}  confidence={conf:.2f}")
+    if entry["event"] == "anomaly":
+        logger.warning(f"Anomaly detected  confidence={conf:.2f} ts={entry['ts']}")
+    else:
+        logger.info(f"Event: {event_name}  confidence={conf:.2f}")
     ui.send_message("acoustic_event", snapshot)
     _update_matrix(entry["event"])
+    _send_bridge_flow_ack()
 
 
 def _handle_acoustic_event(event_name, confidence=0.0, ts=0, *_):
@@ -87,17 +122,97 @@ def _handle_acoustic_event(event_name, confidence=0.0, ts=0, *_):
     handle_event(event_name, confidence, ts)
 
 
+def _handle_bridge_flow_ack_seen(enabled=1, *_):
+    with state_lock:
+        state["bridge_flow_ack_seen_by_mcu"] = bool(int(enabled))
+    logger.info("MCU confirmed bridge flow ACK")
+
+
+def _health_state():
+    with state_lock:
+        last_event_ms = int(state.get("bridge_last_event_ms", 0) or 0)
+        provider_registered = bool(state.get("bridge_provider_registered", False))
+        provider_error = str(state.get("bridge_provider_registration_error", "") or "")
+        first_event_seen = bool(state.get("bridge_first_event_seen", False))
+        ack_sent = bool(state.get("bridge_flow_ack_sent", False))
+        ack_seen = bool(state.get("bridge_flow_ack_seen_by_mcu", False))
+
+    if MOCK:
+        return {
+            "status": "ok",
+            "mock": True,
+            "dashboard": {"healthy": True},
+            "bridge": {
+                "alive": True,
+                "mode": "mock",
+                "provider_registered": True,
+                "no_events_yet": last_event_ms == 0,
+                "first_event_seen": first_event_seen,
+                "flow_ack_sent": ack_sent,
+                "flow_ack_seen_by_mcu": ack_seen,
+            },
+        }
+
+    now_ms = int(time.time() * 1000)
+    age_ms = now_ms - last_event_ms if last_event_ms > 0 else None
+    no_events_yet = last_event_ms == 0
+    alive = age_ms is not None and age_ms <= BRIDGE_STALE_MS and provider_registered
+    stale = age_ms is not None and age_ms > BRIDGE_STALE_MS
+    status = "degraded" if stale or provider_error else "ok"
+    return {
+        "status": status,
+        "mock": False,
+        "dashboard": {"healthy": True},
+        "bridge": {
+            "alive": alive,
+            "mode": "live",
+            "provider_registered": provider_registered,
+            "provider_registration_error": provider_error or None,
+            "last_event_age_ms": age_ms,
+            "stale_after_ms": BRIDGE_STALE_MS,
+            "no_events_yet": no_events_yet,
+            "first_event_seen": first_event_seen,
+            "flow_ack_sent": ack_sent,
+            "flow_ack_seen_by_mcu": ack_seen,
+            "stale": stale,
+            "state": "waiting_for_events" if no_events_yet else ("stale" if stale else "alive"),
+            "failure_point": "Bridge.provide(acoustic_event) callback starvation",
+        },
+    }
+
+
+def _state_snapshot():
+    with state_lock:
+        snapshot = dict(state)
+    health = _health_state()
+    bridge = health.get("bridge", {})
+    snapshot["bridge_health"] = {
+        "mode": bridge.get("mode"),
+        "alive": bridge.get("alive"),
+        "stale": bridge.get("stale", False),
+        "no_events_yet": bridge.get("no_events_yet", False),
+        "provider_registered": bridge.get("provider_registered", False),
+        "provider_registration_error": bridge.get("provider_registration_error"),
+        "last_event_age_ms": bridge.get("last_event_age_ms"),
+        "stale_after_ms": bridge.get("stale_after_ms"),
+        "first_event_seen": bridge.get("first_event_seen", False),
+        "flow_ack_sent": bridge.get("flow_ack_sent", False),
+        "flow_ack_seen_by_mcu": bridge.get("flow_ack_seen_by_mcu", False),
+        "state": bridge.get("state", "mock"),
+    }
+    return snapshot
+
+
 # ── REST endpoints ─────────────────────────────────────────────────────────
-ui.expose_api("GET", "/state", lambda: dict(state))
+ui.expose_api("GET", "/state", _state_snapshot)
 ui.expose_api("GET", "/history", lambda: list(state["history"]))
-ui.expose_api("GET", "/health", lambda: {"status": "ok", "mock": MOCK})
+ui.expose_api("GET", "/health", _health_state)
 
 
 @ui.on_connect
 def on_connect(sid):
     """Send current state snapshot to a newly connected client."""
-    with state_lock:
-        snapshot = dict(state)
+    snapshot = _state_snapshot()
     ui.send_message("acoustic_event", snapshot, sid)
 
 
@@ -124,7 +239,17 @@ def _mock_loop():
 if MOCK:
     threading.Thread(target=_mock_loop, daemon=True, name="mock-events").start()
 else:
-    Bridge.provide("acoustic_event", _handle_acoustic_event)
-    logger.info("Bridge: registered 'acoustic_event' provider")
+    try:
+        Bridge.provide("acoustic_event", _handle_acoustic_event)
+        Bridge.provide("bridge_flow_ack_seen", _handle_bridge_flow_ack_seen)
+        with state_lock:
+            state["bridge_provider_registered"] = True
+            state["bridge_provider_registration_error"] = ""
+        logger.info("Bridge: registered providers 'acoustic_event' + 'bridge_flow_ack_seen'")
+    except Exception as exc:
+        with state_lock:
+            state["bridge_provider_registered"] = False
+            state["bridge_provider_registration_error"] = str(exc)
+        logger.exception("Bridge provider registration failed")
 
 App.run()
