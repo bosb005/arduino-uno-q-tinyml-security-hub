@@ -5,4 +5,5 @@ __pycache__/
 *.pyc
 .venv/
 *.zip
+!03_ai_model/security-hub-acoustic_inferencing.zip
 *.wav
