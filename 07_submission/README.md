@@ -23,11 +23,10 @@ See [03_ai_model/EDGE_IMPULSE_SETUP.md](../03_ai_model/EDGE_IMPULSE_SETUP.md)
 ### 3. Flash the firmware
 See [04_firmware_inference/README.md](../04_firmware_inference/README.md)
 
-### 4. Run the dashboard
+### 4. Deploy firmware + app (recommended)
 ```bash
-cd ../05_linux_dashboard
-pip3 install -r requirements.txt
-python3 app.py
+bash scripts/setup.sh
+./deploy.sh all
 ```
 Open http://<board-ip>:7000
 
@@ -77,8 +76,9 @@ INMP441 ──I2S──► MCU (STM32)
 | `01_hardware_setup/` | INMP441 wiring, schematic, checklist |
 | `02_firmware_audio/` | I2S DMA audio capture backend |
 | `03_ai_model/` | Edge Impulse training pipeline and export notes |
-| `04_firmware_inference/` | TinyML inference sketch and event protocol |
-| `05_linux_dashboard/` | Flask app, SSE dashboard, systemd service |
+| `app/` | **Primary runtime path** (`app/sketch` firmware + `app/python` Linux app on port 7000) |
+| `04_firmware_inference/` | Legacy/reference inference docs and earlier flow |
+| `05_linux_dashboard/` | Legacy/reference dashboard docs and earlier flow |
 | `06_integration/` | IPC specification, test plan, troubleshooting |
 | `07_submission/` | Hackster article, BOM, demo script, submission assets |
 | `DECISIONS.md` | Architecture decisions and rationale |

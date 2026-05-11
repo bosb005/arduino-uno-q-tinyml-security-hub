@@ -1,223 +1,191 @@
-🔒 EDGE AI SMART SECURITY HUB
-Privacy-first acoustic event detection at the edge using TinyML on Arduino UNO Q
+# Edge AI Smart Security Hub
 
-========================================================================
-**🧰 THINGS USED IN THIS PROJECT**
-========================================================================
+**Privacy-first acoustic event detection at the edge using TinyML on Arduino UNO Q**
 
-🔧 Hardware:
-- Arduino UNO Q (MCU + Linux on one board)
-- INMP441 MEMS microphone (digital I2S mic, 16 kHz mono capture)
-- Dupont jumper wires (direct I2S wiring)
-- 100 nF ceramic capacitor (local decoupling for mic board)
+![Hero shot placeholder](docs/hero-shot.jpg)
+
+## What is this project about?
+
+This project is a local-first home security node that listens for meaningful **acoustic events**:
+
+- `presence` (voices, footsteps, nearby movement)
+- `anomaly` (bang/crash-like sudden sounds)
+- `manual_trigger` (intentional triple clap)
+- `idle` (background ambience)
+
+The key idea is simple: **do inference on-device and never stream raw audio to cloud services**.
+
+## The story: why I built it
+
+Most consumer security products push audio or telemetry to cloud backends. For always-on sensing, that creates two problems:
+
+1. privacy risk (raw home data leaves the device)
+2. reliability risk (cloud/API outages reduce system usefulness)
+
+I wanted a beginner-friendly prototype that proves an alternative: a compact edge AI stack that runs fully on Arduino UNO Q. The board is ideal because it combines an MCU side (deterministic real-time DSP/inference) and a Linux side (networking + dashboard) on one platform.
+
+## How it works
+
+![Architecture placeholder](docs/architecture.png)
+
+```text
+INMP441 (I2S mic)
+  -> UNO Q MCU side (16 kHz capture + MFCC + TinyML)
+  -> Serial1 JSON events (internal UART)
+  -> UNO Q Linux side (Flask + SSE)
+  -> Local browser dashboard on :7000
+```
+
+Pipeline stages:
+1. Audio capture
+2. Frame buffering
+3. MFCC feature extraction
+4. TinyML inference
+5. Event transport
+6. Dashboard update
+
+## Things used in this project
+
+See the full BOM: [BOM.md](BOM.md)
+
+Hardware:
+- Arduino UNO Q
+- INMP441 MEMS I2S microphone
+- Dupont jumper wires
+- 100 nF ceramic capacitor
 - USB-C cable
 
-💻 Software:
-- Arduino IDE / Arduino App Lab
+Software and tools:
+- Arduino CLI / Arduino IDE
+- Arduino App Lab
 - Edge Impulse
-- Flask
-- Python 3 + pyserial
-- Server-Sent Events (SSE)
+- Python 3
+- Flask + SSE
 
-========================================================================
-**📖 STORY**
-========================================================================
+## Full instructions (beginner reproducible)
 
-**❗ The problem**
-Most consumer security devices stream data to cloud services. For always-on home audio sensing, this is bad for privacy and reliability. If network or APIs fail, the product gets worse exactly when needed. I wanted a local-first node that reacts to important sounds without sending raw audio away.
+### Step 1: Wire the hardware
 
-**✅ The solution**
-Edge AI Smart Security Hub runs the detection pipeline on Arduino UNO Q:
-- INMP441 -> STM32 MCU (audio capture + TinyML inference)
-- Linux side -> Flask dashboard over Wi-Fi
-- only compact event messages are shared internally
+Reference: [../01_hardware_setup/WIRING.md](../01_hardware_setup/WIRING.md)
 
-This split uses the board well: deterministic real-time work on MCU, networking/UI on Linux.
+Required connections:
+- `VDD -> 3.3V`
+- `GND -> GND`
+- `SD -> D8`
+- `WS -> D10`
+- `SCK -> D9`
+- `L/R -> D7` (forced low for mono)
 
-========================================================================
-**🔌 HARDWARE SETUP**
-========================================================================
+Add a 100 nF capacitor between VDD and GND close to the microphone module.
 
-Full wiring details:
-../01_hardware_setup/WIRING.md
+### Step 2: Prepare the model
 
-Key connections:
-- VDD -> 3.3V
-- GND -> GND
-- SD  -> D8   (I2S serial data)
-- WS  -> D10  (I2S word select / LRCLK)
-- SCK -> D9   (I2S bit clock / BCLK)
-- L/R -> D7   (firmware drives D7 LOW to force left channel mono)
+Reference: [../03_ai_model/EDGE_IMPULSE_SETUP.md](../03_ai_model/EDGE_IMPULSE_SETUP.md)
 
-Place 100 nF capacitor between VDD and GND near the mic breakout.
+Baseline used:
+- 16 kHz mono input
+- 1000 ms window / 500 ms stride
+- MFCC features
+- classes: `presence`, `anomaly`, `manual_trigger`, `idle`
 
-========================================================================
-**🏗️ SYSTEM ARCHITECTURE**
-========================================================================
+Export as Arduino library ZIP:
+`03_ai_model/security-hub-acoustic_inferencing.zip`
 
-INMP441 mic
--> I2S 16 kHz mono
--> UNO Q MCU (STM32)
--> Edge Impulse MFCC DSP
--> TinyML classifier (presence/anomaly/manual_trigger/idle)
--> Serial1 UART JSON (115200, 8N1, newline messages)
--> UNO Q Linux side
--> Python + Flask
--> SSE
--> Browser dashboard over Wi-Fi
+### Step 3: Build and deploy firmware + app
 
-📈 Stage flow:
-1) Audio capture
-2) Frame buffering
-3) MFCC feature extraction
-4) Inference
-5) Event transport
-6) Local dashboard update
+From repository root:
 
-========================================================================
-**🎙️ FIRMWARE: AUDIO CAPTURE (MCU)**
-========================================================================
+```bash
+bash scripts/setup.sh
+./deploy.sh all
+```
 
-Audio frontend:
-02_firmware_audio/audio_capture.h
-02_firmware_audio/audio_capture.cpp
+Dashboard endpoint:
+`http://<board-ip>:7000`
 
-It exposes a small API:
-- initialize capture
-- check frame ready
-- get frame pointer
-- release frame
+### Step 4: Run the end-to-end validation cycle
 
-Internally it uses a ping-pong buffer so capture and processing can overlap.
+```bash
+./deploy.sh cycle
+```
 
-========================================================================
-**🧠 AI MODEL: EDGE IMPULSE**
-========================================================================
+Useful focused checks:
 
-Workflow doc:
-../03_ai_model/EDGE_IMPULSE_SETUP.md
+```bash
+./deploy.sh bridge-test
+bash scripts/health-check.sh --json
+```
 
-Current baseline:
-- input: 16 kHz mono
-- window size: 1000 ms
-- window increase: 500 ms
-- features: MFCC
-- MFCC: 25 ms length, 10 ms stride, 13 coeff, 512 FFT, 300-8000 Hz
-- classifier: small dense NN
-- classes: presence, anomaly, manual_trigger, idle
-- export: Arduino library, INT8 quantized
+### Step 5: Trigger and observe events
 
-Meaning of classes:
-- presence: footsteps/voices/movement-like sounds
-- anomaly: sudden high-energy sounds (bang/crash/glass-like)
-- manual_trigger: intentional triple clap
-- idle: background ambience
+1. Open dashboard on port 7000.
+2. Speak/walk near mic -> `presence` (amber).
+3. Sharp knock/clap -> `anomaly` (red).
+4. Triple clap -> `manual_trigger` (blue).
+5. Confirm event history updates.
 
-========================================================================
-**⚙️ FIRMWARE: TINYML INFERENCE (MCU)**
-========================================================================
+## Results and demo evidence
 
-Inference sketch reference:
-../04_firmware_inference/inference_main.ino
+Prototype behavior observed:
+- edge inference running on MCU with no cloud dependency
+- live event updates on local dashboard
+- compact internal JSON event transport between MCU and Linux
 
-Important implementation points:
-- Serial is USB debug
-- Serial1 is production IPC
-- idle is suppressed on IPC to reduce noise
-- heartbeat at boot + every 10s for liveness
+Target metrics used in this build:
+- test-set accuracy: `>85%`
+- inference latency target: `<200 ms/frame`
+- dashboard update: typically `~1-2 s` end-to-end
 
-========================================================================
-**🖥️ DASHBOARD: REAL-TIME WEB UI (LINUX)**
-========================================================================
+Media evidence to include in Hackster post:
+- hero photo
+- wiring close-up
+- dashboard screenshots for all states
+- serial monitor screenshot
+- 30-60 s demo video (idle -> presence -> anomaly -> manual trigger)
 
-Dashboard source:
-../05_linux_dashboard/
+Checklist: [PHOTO_CHECKLIST.md](PHOTO_CHECKLIST.md)  
+Live demo flow: [DEMO_SCRIPT.md](DEMO_SCRIPT.md)
 
-Behavior:
-- reads UART messages
-- tracks current state + history
-- exposes /stream SSE for live browser updates
+## Creativity and sustainability
 
-UI intent:
-- clear status badge
-- confidence percentage
-- last update time
-- recent event history
-- color coding per event
+Creativity angle:
+- fresh use of UNO Q dual-runtime architecture (MCU + Linux in one board)
+- gesture-based local trigger (triple clap) for hands-free interaction
+- privacy-first smart-home security without cloud lock-in
 
-========================================================================
-**📡 IPC PROTOCOL**
-========================================================================
+Sustainability angle:
+- no continuous cloud audio streaming
+- lower network and backend compute footprint
+- minimal hardware (single board + one digital mic)
+- maintainable local deployment model
 
-Protocol doc:
-../06_integration/IPC_PROTOCOL.md
+## Schematics and wiring evidence
 
-Transport:
-- link: internal UART (Serial1 <-> /dev/ttyS1)
-- baud: 115200
-- framing: one JSON object per line
-- version field: "v":1 in all messages
+- Wiring guide: [../01_hardware_setup/WIRING.md](../01_hardware_setup/WIRING.md)
+- Schematic notes: [../01_hardware_setup/SCHEMATIC.md](../01_hardware_setup/SCHEMATIC.md)
+- Wiring photo checklist item: [PHOTO_CHECKLIST.md](PHOTO_CHECKLIST.md)
 
-🧪 Examples:
-📨 Event:
-{"v":1,"event":"presence","confidence":0.92,"ts":12345}
+## Code and contribution
 
-💓 Heartbeat:
-{"v":1,"event":"heartbeat","uptime":12345,"free_mem":45678}
+Primary implementation paths:
+- MCU firmware (current): `app/sketch/`
+- Linux web app (current): `app/python/`
+- Deployment workflow: `deploy.sh`, `scripts/`
 
-========================================================================
-**📊 RESULTS**
-========================================================================
+Supporting references:
+- Integration protocol: [../06_integration/IPC_PROTOCOL.md](../06_integration/IPC_PROTOCOL.md)
+- Architecture decisions: [../DECISIONS.md](../DECISIONS.md)
 
-This is a working prototype architecture:
-- digital audio capture on MCU
-- on-device MFCC + TinyML inference
-- compact JSON IPC between MCU and Linux
-- local Wi-Fi dashboard without cloud dependency
+## Known limitations
 
-🎯 Prototype targets:
-- test-set accuracy: >85%
-- inference latency: <200 ms per frame
-- event transport: near real-time over UART
-- dashboard update latency: typically 1-2 s end-to-end
+- acoustic models are environment-sensitive and require retraining/tuning
+- very noisy rooms can reduce gesture/event reliability
+- this is a prototype, not a certified security product
 
-========================================================================
-**🌱 SUSTAINABILITY**
-========================================================================
+## Future work
 
-- no cloud audio streaming
-- on-device inference reduces recurring cloud compute
-- minimal BOM (one board + one mic)
-- low idle activity
-- better long-term maintainability without cloud lock-in
-
-========================================================================
-**🚀 FUTURE WORK**
-========================================================================
-
-- MQTT output (Home Assistant integration)
-- multi-node support (multiple rooms)
-- retraining for additional events
-- stronger App Lab deployment pipeline
-- better temporal logic for robust pattern detection
-- richer dashboard liveness/error diagnostics
-
-========================================================================
-**🗂️ CODE STRUCTURE**
-========================================================================
-
-- 01_hardware_setup/      wiring + hardware checklist
-- 02_firmware_audio/      I2S audio capture backend
-- 03_ai_model/            Edge Impulse workflow and retraining notes
-- 04_firmware_inference/  TinyML inference sketch + event protocol
-- 05_linux_dashboard/     Flask app + SSE dashboard
-- 06_integration/         IPC spec, tests, troubleshooting
-- 07_submission/          submission assets and article material
-- DECISIONS.md            architecture decisions and rationale
-
-========================================================================
-**🌐 LIVE URL / PORT**
-========================================================================
-
-🔗 Dashboard endpoint:
-http://<board-ip>:7000
+- MQTT/Home Assistant integration
+- multi-node room coverage
+- expanded class set (glass break, alarm, distress)
+- stronger App Lab deployment automation
+- richer diagnostics in dashboard

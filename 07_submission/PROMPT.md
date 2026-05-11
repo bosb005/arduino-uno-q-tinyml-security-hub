@@ -40,7 +40,7 @@ Total estimated cost (excluding contest hardware): < $10
 ### 3. `DEMO_SCRIPT.md`
 A step-by-step live demo script:
 1. Power on board, wait 30 s for Linux to boot
-2. Connect laptop/phone to home Wi-Fi, open `http://<board-ip>:5000`
+2. Connect laptop/phone to home Wi-Fi, open `http://<board-ip>:7000`
 3. Show idle state (green)
 4. Walk past microphone → presence detected (yellow)
 5. Clap loudly once → anomaly detected (red)

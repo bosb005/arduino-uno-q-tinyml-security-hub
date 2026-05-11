@@ -1,116 +1,81 @@
 # Demo Script — Edge AI Smart Security Hub
 
 ## Setup (before audience)
-- Flash the latest MCU firmware and verify the Edge Impulse library is installed.
-- Install or restart the dashboard service on the Linux side.
-- Confirm the board has joined Wi-Fi and write down the local IP address.
-- Open the dashboard once on a backup laptop/phone to confirm it loads.
-- Keep a hard surface nearby for the clap/knock demo.
-- Keep Arduino Serial Monitor ready at `115200` baud on the USB debug port.
-- Quiet the room briefly before starting so the audience sees a stable idle state.
 
-## Live Demo (5 minutes)
+1. Deploy latest build: `./deploy.sh all`.
+2. Confirm health endpoint responds: `http://<board-ip>:7000/health`.
+3. Open dashboard once on backup device to verify UI loads.
+4. Keep Arduino Serial Monitor ready at `115200` baud (USB debug).
+5. Keep a hard surface nearby for anomaly trigger (knock/clap).
+6. Quiet the room briefly before live trigger sequence.
 
-### Step 1 — 0:00 — Power on the board
-**Action:** Apply power and begin speaking while Linux boots.
+## Live demo sequence (4-6 minutes)
 
-**Talking points:**
-- “This is a privacy-first smart security node built on the Arduino UNO Q.”
-- “The microphone feeds the MCU side for real-time audio inference, while the Linux side hosts the dashboard.”
-- “Boot takes about 30 seconds because the board also runs a Linux environment.”
+### Step 1 — Power on and story hook
+**Action:** Apply power and explain the problem while Linux boots.
 
-### Step 2 — 0:30 — Open the dashboard
-**Action:** Open `http://[board-ip]:5000` in a browser and show the idle state.
+**Say:**  
+"Cloud-connected security products can leak privacy and fail when internet is unreliable. This project keeps inference local on Arduino UNO Q."
 
-**Talking points:**
-- “The dashboard is served locally over Wi-Fi from the board itself.”
-- “Idle is the baseline state, shown in green, with no cloud connection required.”
-- “The browser only receives compact events, not raw audio.”
+### Step 2 — Open local dashboard
+**Action:** Open `http://<board-ip>:7000` and show idle state.
 
-### Step 3 — 1:00 — Trigger `presence`
-**Action:** Walk past the microphone or speak near it.
+**Say:**  
+"The dashboard is local to the board, and only compact event messages are shown."
 
-**Talking points:**
-- “This class represents occupancy-like sound: footsteps, voices, or movement near the device.”
-- “The model runs on-device and returns a confidence score in real time.”
-- “You can see the badge change and the event appear in history immediately.”
+### Step 3 — Trigger `presence`
+**Action:** Walk/speak near microphone.
 
-### Step 4 — 1:30 — Trigger `anomaly`
-**Action:** Knock firmly on the table or create a sharp loud impact.
+**Expected:** Yellow/presence state appears with confidence and history entry.
 
-**Talking points:**
-- “Anomaly is for sudden, high-energy sounds like a bang, crash, or glass-like break.”
-- “This is the kind of event a security workflow could escalate.”
-- “Notice that the dashboard color changes to red for a more urgent state.”
+### Step 4 — Trigger `anomaly`
+**Action:** Sharp knock or loud clap.
 
-### Step 5 — 2:00 — Trigger `manual_trigger`
-**Action:** Perform a clear triple-clap pattern.
+**Expected:** Red/anomaly state appears.
 
-**Talking points:**
-- “Manual trigger is an intentional user command implemented as a triple-clap pattern.”
-- “That gives the system a hands-free local control gesture.”
-- “Because inference is local, the response works without internet access.”
+### Step 5 — Trigger `manual_trigger`
+**Action:** Clear triple-clap pattern.
 
-### Step 6 — 2:30 — Show event history
-**Action:** Scroll through the event history table.
+**Expected:** Blue/manual trigger state appears.
 
-**Talking points:**
-- “The dashboard keeps a recent history so users can see what happened without reading logs.”
-- “Newest events are shown first with timestamps and confidence.”
-- “This is enough for a lightweight local monitoring interface.”
+### Step 6 — Show evidence panel
+**Action:** Scroll event history and open Serial Monitor.
 
-### Step 7 — 3:00 — Show Serial Monitor
-**Action:** Switch to Arduino Serial Monitor on USB.
+**Say:**  
+"History shows timestamps and confidence; serial output shows the raw class behavior used for tuning."
 
-**Talking points:**
-- “USB Serial is reserved for debug output.”
-- “Here you can see the raw class probabilities: presence, anomaly, manual trigger, and idle.”
-- “That made threshold tuning and model validation much easier during development.”
+### Step 7 — Prove offline-first behavior
+**Action:** Disconnect upstream internet (keep local Wi-Fi) and retrigger one event.
 
-### Step 8 — 3:30 — Prove it is offline-first
-**Action:** Put your phone in airplane mode, then re-enable Wi-Fi only if needed so it stays on the local network, or otherwise disconnect upstream internet access.
+**Say:**  
+"Inference still works because compute is on-device; no raw audio is sent to cloud APIs."
 
-**Talking points:**
-- “This system does not depend on a cloud API.”
-- “Detection continues because the model runs on the MCU and the dashboard is served locally.”
-- “No raw audio leaves the device.”
+### Step 8 — Close on architecture
+**Action:** Point to board and summarize split runtime.
 
-### Step 9 — 4:00 — Explain the split architecture
-**Action:** Point to the board while summarizing the two processing domains.
+**Say:**  
+"MCU side does audio + TinyML, Linux side does UI + networking. UNO Q lets both run on one board."
 
-**Talking points:**
-- “This side is the MCU: audio capture, MFCC extraction, and TinyML inference.”
-- “This side is Linux: UART ingestion, Flask, SSE, and the Wi-Fi dashboard.”
-- “The UNO Q makes this architecture neat because both roles live on one board.”
+## Capture list during demo (for Hackster article proof)
 
-### Step 10 — 4:30 — Q&A
-**Action:** Pause on the dashboard and invite questions.
+1. Dashboard idle screenshot.
+2. Presence/anomaly/manual_trigger screenshots.
+3. Event history screenshot.
+4. Serial monitor screenshot.
+5. 30-60s video clip of full trigger sequence.
 
-**Suggested closing line:**
-- “The main idea is simple: meaningful acoustic awareness, processed privately at the edge.”
+## Backup plan
 
-## Backup Plan
+### If dashboard does not load
+- Recheck board IP and port `7000`.
+- Run `bash scripts/health-check.sh --json`.
+- If needed, use pre-recorded proof clip and continue explanation.
 
-### If the dashboard does not load
-- Refresh once and confirm the IP address.
-- SSH into the Linux side and restart the Flask service.
-- If Wi-Fi is unstable, use a previously loaded browser page or local screen recording for the visual portion.
+### If events are not updating
+- Verify microphone wiring and shared ground.
+- Run `./deploy.sh bridge-test`.
+- Use Serial Monitor output as fallback evidence of MCU inferencing.
 
-### If UART events are not arriving
-- Check the `Serial1` wiring and shared ground.
-- Confirm the service is reading the correct Linux UART device.
-- Show the USB Serial Monitor to prove inference is still running on the MCU.
-
-### If the classifier misses a gesture
-- Repeat the trigger more clearly and closer to the microphone.
-- Use the debug probabilities to explain that this is a prototype and environment matters.
-- Fall back to a recorded short demo clip if the room is too noisy.
-
-### If Linux boot is slower than expected
-- Start the explanation earlier and use the boot time to introduce the problem and solution.
-- Keep the browser tab ready so the dashboard appears as soon as the service is available.
-
-### If the room is too loud
-- Move the microphone closer to the demo area.
-- Reduce audience chatter before the manual trigger step.
-- Prioritize presence and anomaly first, then attempt triple-clap once the room settles.
+### If room noise is too high
+- Move mic closer to source.
+- Demonstrate anomaly first (higher energy), then manual trigger.
